@@ -43,6 +43,15 @@ export function createMobileView(
   }
 }
 
+/** The view editor does not edit presentation config (ADR-0301), so keep the saved one. */
+function withPreservedPresentation(
+  definition: MobileViewDefinition,
+  existing: MobileViewDefinition,
+): MobileViewDefinition {
+  if (definition.presentation !== undefined || existing.presentation === undefined) return definition
+  return { ...definition, presentation: existing.presentation }
+}
+
 export function updateMobileView(
   snapshot: MobileWorkspaceSnapshot,
   viewId: string,
@@ -51,13 +60,14 @@ export function updateMobileView(
   const existingView = findMobileView(snapshot.views, viewId)
   if (!existingView) return { snapshot, writes: [] }
 
-  const view = { ...existingView, definition }
+  const savedDefinition = withPreservedPresentation(definition, existingView.definition)
+  const view = { ...existingView, definition: savedDefinition }
   const views = orderedMobileSavedViews((snapshot.views ?? []).map((candidate) => candidate.id === view.id ? view : candidate))
 
   return {
     snapshot: snapshotWithViews(snapshot, views),
     writes: [{
-      content: serializeMobileSavedViewDefinition(definition),
+      content: serializeMobileSavedViewDefinition(savedDefinition),
       kind: 'saveView',
       path: mobileSavedViewPath(existingView.filename),
     }],

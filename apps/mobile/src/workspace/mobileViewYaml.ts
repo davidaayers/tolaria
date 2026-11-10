@@ -22,7 +22,7 @@ function viewDefinition(value: unknown, fallbackName: string): MobileViewDefinit
   if (!isRecord(value)) return null
   const filters = Object.hasOwn(value, 'filters') ? filterGroup(value.filters, 0) : { all: [] }
   if (!filters) return null
-  return {
+  const definition: MobileViewDefinition = {
     name: optionalText(value.name) ?? fallbackName,
     color: optionalText(value.color),
     icon: optionalText(value.icon),
@@ -31,6 +31,9 @@ function viewDefinition(value: unknown, fallbackName: string): MobileViewDefinit
     listPropertiesDisplay: textList(value.listPropertiesDisplay),
     filters,
   }
+  // Presentation config (ADR-0301) is carried opaquely so saving never erases it.
+  if (isRecord(value.presentation)) definition.presentation = value.presentation
+  return definition
 }
 
 function filterGroup(value: unknown, depth: number): MobileViewFilterGroup | null {

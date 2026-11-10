@@ -1,3 +1,4 @@
+import { stringify } from 'yaml'
 import { parseMobileViewDefinition } from './mobileViewYaml'
 import type {
   MobileNote,
@@ -128,6 +129,9 @@ export function serializeMobileSavedViewDefinition(definition: MobileViewDefinit
 
   lines.push('filters:')
   lines.push(...serializedFilterGroup(definition.filters, 2))
+  if (definition.presentation !== undefined) {
+    lines.push(stringify({ presentation: definition.presentation }).trimEnd())
+  }
 
   return `${lines.join('\n')}\n`
 }
