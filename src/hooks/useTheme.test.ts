@@ -19,6 +19,24 @@ describe('useEditorTheme', () => {
     expect(result.current.cssVars['--editor-font-family']).toMatch(/^'Inter'/)
   })
 
+  it('uses the 15px theme font size by default', () => {
+    const { result } = renderHook(() => useEditorTheme())
+
+    expect(result.current.cssVars['--editor-font-size']).toBe('15px')
+    expect(result.current.cssVars['--headings-h1-font-size']).toBe('32px')
+  })
+
+  it('scales body, heading, code, and table sizes with the chosen editor font size', () => {
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(AppPreferencesProvider, { editorFontSize: 20 }, children)
+    const { result } = renderHook(() => useEditorTheme(), { wrapper })
+
+    expect(result.current.cssVars['--editor-font-size']).toBe('20px')
+    expect(result.current.cssVars['--headings-h1-font-size']).toBe('43px')
+    expect(result.current.cssVars['--inline-styles-code-font-size']).toBe('19px')
+    expect(result.current.cssVars['--table-font-size']).toBe('19px')
+  })
+
   it('keeps inline code on the muted editor surface without exporting code block overrides', () => {
     const { result } = renderHook(() => useEditorTheme())
 

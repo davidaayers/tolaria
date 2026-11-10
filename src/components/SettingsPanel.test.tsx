@@ -557,6 +557,8 @@ describe('SettingsPanel', () => {
     fireEvent.click(screen.getByRole('option', { name: 'Wide' }))
     fireEvent.pointerDown(screen.getByTestId('settings-editor-font'), { button: 0, pointerType: 'mouse' })
     fireEvent.click(screen.getByRole('option', { name: 'Inter' }))
+    fireEvent.pointerDown(screen.getByTestId('settings-editor-font-size'), { button: 0, pointerType: 'mouse' })
+    fireEvent.click(screen.getByRole('option', { name: '18 px' }))
     fireEvent.click(within(screen.getByTestId('settings-sidebar-type-pluralization')).getByRole('switch'))
     fireEvent.click(screen.getByTestId('settings-save'))
 
@@ -564,6 +566,7 @@ describe('SettingsPanel', () => {
       date_display_format: 'iso',
       note_width_mode: 'wide',
       editor_font: 'inter',
+      editor_font_size: 18,
       sidebar_type_pluralization_enabled: false,
     }))
     expect(trackEventMock).toHaveBeenCalledWith('date_display_format_changed', { format: 'iso' })

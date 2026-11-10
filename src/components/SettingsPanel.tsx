@@ -65,6 +65,7 @@ import {
 } from '../utils/allNotesFileVisibility'
 import { DEFAULT_NOTE_WIDTH_MODE, normalizeNoteWidthMode } from '../utils/noteWidth'
 import { DEFAULT_EDITOR_FONT, EDITOR_FONTS, normalizeEditorFont, type EditorFont } from '../utils/editorFont'
+import { DEFAULT_EDITOR_FONT_SIZE, EDITOR_FONT_SIZES, normalizeEditorFontSize } from '../utils/editorFontSize'
 import { DEFAULT_DATE_DISPLAY_FORMAT, normalizeDateDisplayFormat, type DateDisplayFormat } from '../utils/dateDisplay'
 import { Button } from './ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
@@ -119,6 +120,7 @@ interface SettingsDraft {
   dateDisplayFormat: DateDisplayFormat
   defaultNoteWidth: NoteWidthMode
   editorFont: EditorFont
+  editorFontSize: number
   sidebarTypePluralizationEnabled: boolean
   initialH1AutoRename: boolean
   hideGitignoredFiles: boolean
@@ -175,6 +177,8 @@ interface SettingsBodyProps {
   setDefaultNoteWidth: (value: NoteWidthMode) => void
   editorFont: EditorFont
   setEditorFont: (value: EditorFont) => void
+  editorFontSize: number
+  setEditorFontSize: (value: number) => void
   sidebarTypePluralizationEnabled: boolean
   setSidebarTypePluralizationEnabled: (value: boolean) => void
   locale: AppLocale
@@ -239,6 +243,7 @@ function createSettingsDraft(settings: Settings, explicitOrganizationEnabled: bo
     dateDisplayFormat: normalizeDateDisplayFormat(settings.date_display_format) ?? DEFAULT_DATE_DISPLAY_FORMAT,
     defaultNoteWidth: normalizeNoteWidthMode(settings.note_width_mode) ?? DEFAULT_NOTE_WIDTH_MODE,
     editorFont: normalizeEditorFont(settings.editor_font) ?? DEFAULT_EDITOR_FONT,
+    editorFontSize: normalizeEditorFontSize(settings.editor_font_size) ?? DEFAULT_EDITOR_FONT_SIZE,
     sidebarTypePluralizationEnabled: settings.sidebar_type_pluralization_enabled ?? true,
     initialH1AutoRename: settings.initial_h1_auto_rename_enabled ?? true,
     hideGitignoredFiles: shouldHideGitignoredFiles(settings),
@@ -291,6 +296,7 @@ function buildSettingsFromDraft(settings: Settings, draft: SettingsDraft): Setti
     date_display_format: draft.dateDisplayFormat,
     note_width_mode: draft.defaultNoteWidth,
     editor_font: draft.editorFont,
+    editor_font_size: draft.editorFontSize,
     sidebar_type_pluralization_enabled: draft.sidebarTypePluralizationEnabled,
     initial_h1_auto_rename_enabled: draft.initialH1AutoRename,
     ai_features_enabled: draft.aiFeaturesEnabled,
@@ -626,6 +632,8 @@ function SettingsBodyFromDraft(options: SettingsBodyFromDraftProps) {
       setDefaultNoteWidth={(value) => updateDraft('defaultNoteWidth', value)}
       editorFont={draft.editorFont}
       setEditorFont={(value) => updateDraft('editorFont', value)}
+      editorFontSize={draft.editorFontSize}
+      setEditorFontSize={(value) => updateDraft('editorFontSize', value)}
       sidebarTypePluralizationEnabled={draft.sidebarTypePluralizationEnabled}
       setSidebarTypePluralizationEnabled={(value) => updateDraft('sidebarTypePluralizationEnabled', value)}
       initialH1AutoRename={draft.initialH1AutoRename}
@@ -669,7 +677,7 @@ function SettingsBody(props: SettingsBodyProps) {
 }
 
 function SettingsSyncAndAppearanceSections(options: SettingsBodyProps) {
-  const { t, locale, systemLocale, multiWorkspaceEnabled, setMultiWorkspaceEnabled, vaults, defaultWorkspacePath, onRemoveVault, onReorderVaults, onSetDefaultWorkspace, onUpdateWorkspaceIdentity, themeMode, setThemeMode, editorFont, setEditorFont, uiLanguage, setUiLanguage } = options
+  const { t, locale, systemLocale, multiWorkspaceEnabled, setMultiWorkspaceEnabled, vaults, defaultWorkspacePath, onRemoveVault, onReorderVaults, onSetDefaultWorkspace, onUpdateWorkspaceIdentity, themeMode, setThemeMode, editorFont, setEditorFont, editorFontSize, setEditorFontSize, uiLanguage, setUiLanguage } = options
   return (
     <>
       <SettingsSection id={SETTINGS_SECTION_IDS.sync} showDivider={false}>
@@ -706,6 +714,8 @@ function SettingsSyncAndAppearanceSections(options: SettingsBodyProps) {
             setThemeMode={setThemeMode}
             editorFont={editorFont}
             setEditorFont={setEditorFont}
+            editorFontSize={editorFontSize}
+            setEditorFontSize={setEditorFontSize}
           />
           <LanguageSettingsSection
             t={t}
@@ -853,7 +863,9 @@ function AppearanceSettingsSection({
   setThemeMode,
   editorFont,
   setEditorFont,
-}: Pick<SettingsBodyProps, 't' | 'themeMode' | 'setThemeMode' | 'editorFont' | 'setEditorFont'>) {
+  editorFontSize,
+  setEditorFontSize,
+}: Pick<SettingsBodyProps, 't' | 'themeMode' | 'setThemeMode' | 'editorFont' | 'setEditorFont' | 'editorFontSize' | 'setEditorFontSize'>) {
   return (
     <>
       <SettingsRow label={t('settings.theme.label')} description={t('settings.appearance.description')}>
@@ -868,6 +880,15 @@ function AppearanceSettingsSection({
           testId="settings-editor-font"
         />
       </SettingsRow>
+      <SettingsRow label={t('settings.editorFontSize.label')} description={t('settings.editorFontSize.description')}>
+        <SelectControl
+          ariaLabel={t('settings.editorFontSize.label')}
+          value={String(editorFontSize)}
+          onValueChange={(value) => setEditorFontSize(Number(value))}
+          options={buildEditorFontSizeOptions(t)}
+          testId="settings-editor-font-size"
+        />
+      </SettingsRow>
     </>
   )
 }
@@ -878,6 +899,13 @@ const EDITOR_FONT_LABEL_KEYS: Record<EditorFont, TranslationKey> = {
   'jetbrains-mono': 'settings.editorFont.jetbrainsMono',
   'ibm-plex-mono': 'settings.editorFont.ibmPlexMono',
   system: 'settings.editorFont.system',
+}
+
+function buildEditorFontSizeOptions(t: Translate): Array<{ value: string; label: string }> {
+  return EDITOR_FONT_SIZES.map((size) => ({
+    value: String(size),
+    label: t('settings.editorFontSize.option', { size }),
+  }))
 }
 
 function buildEditorFontOptions(t: Translate): Array<{ value: EditorFont; label: string }> {
