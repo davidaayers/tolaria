@@ -101,4 +101,45 @@ describe('BoardView', () => {
     renderBoard([], null)
     expect(screen.getByText('No notes to show on this board')).toBeInTheDocument()
   })
+
+  it('hides the empty message when a column filter is hiding cards', () => {
+    const filter = { all: [{ field: 'completed', op: 'after' as const, value: '2026-02-01' }] }
+    renderBoard([note('old', 'done')], [column('done', { filter })])
+    const region = columnRegion('done')
+    expect(within(region).queryByText('No notes')).not.toBeInTheDocument()
+    expect(within(region).getByText('1 hidden by filter')).toBeInTheDocument()
+  })
+
+  it('gives each card an accent chip per scalar property, shared by equal values', () => {
+    const entries = [
+      makeEntry({ path: '/v/a.md', title: 'a', properties: { Stage: 'todo', area: 'ops' } }),
+      makeEntry({ path: '/v/b.md', title: 'b', properties: { Stage: 'todo', area: 'ops' } }),
+    ]
+    renderBoard(entries, [column('todo')], { properties: ['area'] })
+    const chips = screen.getAllByText('ops')
+    expect(chips).toHaveLength(2)
+    expect(chips[0].getAttribute('style')).toBe(chips[1].getAttribute('style'))
+    expect(chips[0].getAttribute('style')).toContain('--accent-')
+  })
+
+  it('shows due dates as urgency chips and marks overdue ones', () => {
+    const day = (offset: number) => {
+      const date = new Date()
+      date.setDate(date.getDate() + offset)
+      const pad = (n: number) => String(n).padStart(2, '0')
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+    }
+    const entries = [
+      makeEntry({ path: '/v/a.md', title: 'late', properties: { Stage: 'todo', due: day(-2) } }),
+      makeEntry({ path: '/v/b.md', title: 'now', properties: { Stage: 'todo', due: day(0) } }),
+    ]
+    renderBoard(entries, [column('todo')], { properties: ['due'] })
+    expect(screen.getByText('2d overdue')).toHaveAttribute('data-urgency', 'overdue')
+    expect(screen.getByText('Due today')).toHaveAttribute('data-urgency', 'soon')
+  })
+
+  it('keeps each column in its own scroll area', () => {
+    renderBoard(['a', 'b'].map((t) => note(t, 'todo')), [column('todo')])
+    expect(screen.getByTestId('board-column-todo-notes').className).toContain('overflow-y-auto')
+  })
 })

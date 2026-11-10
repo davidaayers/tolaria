@@ -1,0 +1,82 @@
+import type { CSSProperties } from 'react'
+import type { MouseEvent } from 'react'
+import { translate, type AppLocale } from '../../lib/i18n'
+import type { VaultEntry, VaultPropertyValue } from '../../types'
+import { PropertyChips } from '../note-item/PropertyChips'
+import { accentForValue, dueUrgency, isDueProperty } from './boardCardMeta'
+
+const CHIP_CLASSNAME = 'inline-flex max-w-full items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium'
+
+export interface BoardCardChipsProps {
+  entry: VaultEntry
+  properties: string[]
+  allEntries: VaultEntry[]
+  typeEntryMap: Record<string, VaultEntry>
+  locale: AppLocale
+  onOpenNote: (entry: VaultEntry, event: MouseEvent) => void
+}
+
+function accentStyle(accent: string): CSSProperties {
+  return { backgroundColor: `var(--accent-${accent}-light)`, color: `var(--accent-${accent})` }
+}
+
+const URGENCY_STYLE: Record<'overdue' | 'soon' | 'later', CSSProperties | undefined> = {
+  overdue: accentStyle('red'),
+  soon: accentStyle('orange'),
+  later: undefined,
+}
+
+function scalarText(value: VaultPropertyValue | undefined): string | null {
+  if (value === undefined || value === null || Array.isArray(value)) return null
+  const text = String(value).trim()
+  return text.length > 0 ? text : null
+}
+
+function propertyValue(entry: VaultEntry, name: string): VaultPropertyValue | undefined {
+  const key = Object.keys(entry.properties).find((candidate) => candidate.toLowerCase() === name.toLowerCase())
+  return key === undefined ? undefined : entry.properties[key]
+}
+
+function shortDate(value: string, locale: AppLocale): string {
+  const [year, month, day] = value.slice(0, 10).split('-').map(Number)
+  return new Date(year, month - 1, day).toLocaleDateString(locale, { month: 'short', day: 'numeric' })
+}
+
+function DueChip({ value, locale }: { value: string; locale: AppLocale }) {
+  const urgency = dueUrgency(value)
+  if (!urgency) return null
+  const label = urgency.key ? translate(locale, urgency.key, { count: urgency.count }) : shortDate(value, locale)
+  return (
+    <span className={`${CHIP_CLASSNAME} bg-muted text-muted-foreground`} style={URGENCY_STYLE[urgency.tone]} data-urgency={urgency.tone}>
+      {label}
+    </span>
+  )
+}
+
+function ScalarChip({ name, text, locale }: { name: string; text: string; locale: AppLocale }) {
+  if (isDueProperty(name) && dueUrgency(text)) return <DueChip value={text} locale={locale} />
+  return <span className={CHIP_CLASSNAME} style={accentStyle(accentForValue(text))}>{text}</span>
+}
+
+/** Card metadata: coloured scalar chips and due-date urgency; lists and wikilinks use the shared chips. */
+export function BoardCardChips({ entry, properties, allEntries, typeEntryMap, locale, onOpenNote }: BoardCardChipsProps) {
+  const scalars: Array<{ name: string; text: string }> = []
+  const shared: string[] = []
+  for (const name of properties) {
+    const text = scalarText(propertyValue(entry, name))
+    if (text === null) shared.push(name)
+    else scalars.push({ name, text })
+  }
+  return (
+    <>
+      {scalars.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {scalars.map(({ name, text }) => <ScalarChip key={name} name={name} text={text} locale={locale} />)}
+        </div>
+      )}
+      {shared.length > 0 && (
+        <PropertyChips entry={entry} displayProps={shared} allEntries={allEntries} typeEntryMap={typeEntryMap} onOpenNote={onOpenNote} />
+      )}
+    </>
+  )
+}
