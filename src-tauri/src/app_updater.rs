@@ -52,6 +52,19 @@ fn requires_package_manager_update(
     is_linux && !is_appimage && is_system_package
 }
 
+/// Set at build time (`TOLARIA_DISABLE_UPDATER=1`) for builds that must never
+/// contact the official release feed, such as a personal fork.
+const DISABLE_UPDATER_BUILD_FLAG: Option<&str> = option_env!("TOLARIA_DISABLE_UPDATER");
+const UPDATES_DISABLED_MESSAGE: &str = "Updates are disabled in this build";
+
+fn updates_disabled_for(flag: Option<&str>) -> bool {
+    matches!(flag.map(str::trim), Some(value) if !value.is_empty() && value != "0")
+}
+
+fn updates_disabled() -> bool {
+    updates_disabled_for(DISABLE_UPDATER_BUILD_FLAG)
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppUpdateMetadata {
@@ -329,6 +342,9 @@ pub async fn check_for_app_update<R: Runtime>(
     app_handle: AppHandle<R>,
     release_channel: Option<String>,
 ) -> Result<Option<AppUpdateMetadata>, String> {
+    if updates_disabled() {
+        return Ok(None);
+    }
     if system_package_update_required() {
         return Err(SYSTEM_PACKAGE_UPDATE_MESSAGE.to_string());
     }
@@ -355,6 +371,9 @@ pub async fn download_and_install_app_update<R: Runtime>(
     expected_version: String,
     on_event: Channel<AppUpdateDownloadEvent>,
 ) -> Result<(), String> {
+    if updates_disabled() {
+        return Err(UPDATES_DISABLED_MESSAGE.to_string());
+    }
     if system_package_update_required() {
         return Err(SYSTEM_PACKAGE_UPDATE_MESSAGE.to_string());
     }

@@ -1,7 +1,7 @@
 use super::{
     latest_alpha_release_metadata_url, requires_package_manager_update, should_install_update,
-    should_recover_poisoned_calendar_version, AppUpdateDownloadEvent, AppUpdateMetadata,
-    GitHubAsset, GitHubRelease, ReleaseChannel,
+    should_recover_poisoned_calendar_version, updates_disabled_for, AppUpdateDownloadEvent,
+    AppUpdateMetadata, GitHubAsset, GitHubRelease, ReleaseChannel,
 };
 use serde_json::json;
 
@@ -250,4 +250,13 @@ fn github_alpha_release(
             browser_download_url: browser_download_url.into(),
         }],
     }
+}
+
+#[test]
+fn updates_are_disabled_only_when_the_build_flag_is_set() {
+    assert!(!updates_disabled_for(None));
+    assert!(!updates_disabled_for(Some("")));
+    assert!(!updates_disabled_for(Some("0")));
+    assert!(updates_disabled_for(Some("1")));
+    assert!(updates_disabled_for(Some("true")));
 }
