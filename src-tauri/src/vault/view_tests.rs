@@ -14,6 +14,7 @@ mod tests {
 
     fn make_project_view(name: &str) -> ViewDefinition {
         ViewDefinition {
+            presentation: None,
             name: name.to_string(),
             icon: None,
             color: None,
@@ -344,6 +345,49 @@ filters:
         delete_view(dir.path(), "test.yml").unwrap();
         let views = scan_views(dir.path());
         assert_eq!(views.len(), 0);
+    }
+
+    #[test]
+    fn test_save_preserves_presentation_block() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let yaml = r#"
+name: Tasks Board
+filters:
+  all:
+    - field: type
+      op: equals
+      value: Task
+presentation:
+  type: board
+  groupBy: status
+  columns:
+    - value: in-progress
+      label: In Progress
+      limit: 5
+"#;
+        let def: ViewDefinition = serde_yaml::from_str(yaml).unwrap();
+
+        save_view(dir.path(), "board.yml", &def).unwrap();
+
+        let views = scan_views(dir.path());
+        let presentation = views[0]
+            .definition
+            .presentation
+            .as_ref()
+            .expect("presentation survives a save");
+        assert_eq!(presentation["type"].as_str(), Some("board"));
+        assert_eq!(presentation["groupBy"].as_str(), Some("status"));
+        assert_eq!(presentation["columns"][0]["limit"].as_u64(), Some(5));
+    }
+
+    #[test]
+    fn test_save_omits_presentation_when_absent() {
+        let dir = tempfile::TempDir::new().unwrap();
+
+        save_view(dir.path(), "plain.yml", &make_project_view("Plain")).unwrap();
+
+        let written = fs::read_to_string(dir.path().join("views").join("plain.yml")).unwrap();
+        assert!(!written.contains("presentation"));
     }
 
     #[test]

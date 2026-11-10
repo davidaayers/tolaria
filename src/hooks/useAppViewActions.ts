@@ -111,7 +111,7 @@ function savedViewFilename(
     : createViewFilename(definition.name, existingViews.map((view) => view.filename))
 }
 
-function savedViewDefinition(
+export function savedViewDefinition(
   definition: ViewDefinition,
   editingView: { definition: ViewDefinition } | null,
   existingViews: ViewFile[],

@@ -59,6 +59,7 @@ mod tests {
 
     fn sample_view_definition() -> ViewDefinition {
         ViewDefinition {
+            presentation: None,
             name: "Inbox".to_string(),
             icon: None,
             color: None,

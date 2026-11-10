@@ -51,6 +51,7 @@ fn evaluate_archived_entry_policy_matches_shared_contract() {
             .map(fixture_entry)
             .collect::<Vec<_>>();
         let definition = ViewDefinition {
+            presentation: None,
             name: name.clone(),
             icon: None,
             color: None,

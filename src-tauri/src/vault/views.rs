@@ -35,6 +35,10 @@ pub struct ViewDefinition {
     )]
     pub list_properties_display: Vec<String>,
     pub filters: FilterGroup,
+    /// Collection presentation config (ADR-0144, ADR-0301). Kept as an opaque
+    /// YAML value so presentations Rust does not interpret survive a save.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub presentation: Option<serde_yaml::Value>,
 }
 
 #[derive(Debug, Clone)]

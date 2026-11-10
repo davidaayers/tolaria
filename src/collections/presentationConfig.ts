@@ -37,7 +37,7 @@ export function presentationFromViewDefinition(definition: ViewDefinition): Coll
     sort: nullableString(definition.sort),
     properties: stringArray(definition.listPropertiesDisplay),
   }
-  const rawPresentation = Reflect.get(definition as unknown as UnknownRecord, 'presentation')
+  const rawPresentation = definition.presentation
   if (!isRecord(rawPresentation)) return fallback
   if (rawPresentation.type !== COLLECTION_PRESENTATION_LIST) return fallback
   return listPresentation(rawPresentation, fallback)

@@ -43,6 +43,7 @@ mod tests {
 
     fn definition(name: &str) -> ViewDefinition {
         ViewDefinition {
+            presentation: None,
             name: name.to_string(),
             icon: Some("star".to_string()),
             color: None,

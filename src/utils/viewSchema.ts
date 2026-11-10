@@ -29,6 +29,11 @@ export interface ViewDefinition {
   sort: string | null
   listPropertiesDisplay?: string[]
   filters: FilterGroup
+  /**
+   * Collection presentation config (ADR-0144, ADR-0301). Read by
+   * `presentationFromViewDefinition`; carried through every save unchanged.
+   */
+  presentation?: unknown
 }
 
 export interface ViewFileCore {
