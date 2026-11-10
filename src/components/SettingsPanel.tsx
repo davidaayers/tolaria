@@ -25,6 +25,7 @@ import {
   resolveEffectiveLocale,
   serializeUiLanguagePreference,
   type AppLocale,
+  type TranslationKey,
   type UiLanguagePreference,
 } from '../lib/i18n'
 import {
@@ -63,7 +64,7 @@ import {
   type AllNotesFileVisibility,
 } from '../utils/allNotesFileVisibility'
 import { DEFAULT_NOTE_WIDTH_MODE, normalizeNoteWidthMode } from '../utils/noteWidth'
-import { DEFAULT_EDITOR_FONT, normalizeEditorFont, type EditorFont } from '../utils/editorFont'
+import { DEFAULT_EDITOR_FONT, EDITOR_FONTS, normalizeEditorFont, type EditorFont } from '../utils/editorFont'
 import { DEFAULT_DATE_DISPLAY_FORMAT, normalizeDateDisplayFormat, type DateDisplayFormat } from '../utils/dateDisplay'
 import { Button } from './ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
@@ -668,7 +669,7 @@ function SettingsBody(props: SettingsBodyProps) {
 }
 
 function SettingsSyncAndAppearanceSections(options: SettingsBodyProps) {
-  const { t, locale, systemLocale, multiWorkspaceEnabled, setMultiWorkspaceEnabled, vaults, defaultWorkspacePath, onRemoveVault, onReorderVaults, onSetDefaultWorkspace, onUpdateWorkspaceIdentity, themeMode, setThemeMode, uiLanguage, setUiLanguage } = options
+  const { t, locale, systemLocale, multiWorkspaceEnabled, setMultiWorkspaceEnabled, vaults, defaultWorkspacePath, onRemoveVault, onReorderVaults, onSetDefaultWorkspace, onUpdateWorkspaceIdentity, themeMode, setThemeMode, editorFont, setEditorFont, uiLanguage, setUiLanguage } = options
   return (
     <>
       <SettingsSection id={SETTINGS_SECTION_IDS.sync} showDivider={false}>
@@ -699,7 +700,13 @@ function SettingsSyncAndAppearanceSections(options: SettingsBodyProps) {
       <SettingsSection id={SETTINGS_SECTION_IDS.appearance}>
         <SectionHeading title={t('settings.appearance.title')} />
         <SettingsGroup>
-          <AppearanceSettingsSection t={t} themeMode={themeMode} setThemeMode={setThemeMode} />
+          <AppearanceSettingsSection
+            t={t}
+            themeMode={themeMode}
+            setThemeMode={setThemeMode}
+            editorFont={editorFont}
+            setEditorFont={setEditorFont}
+          />
           <LanguageSettingsSection
             t={t}
             locale={locale}
@@ -714,7 +721,7 @@ function SettingsSyncAndAppearanceSections(options: SettingsBodyProps) {
 }
 
 function SettingsContentSections(options: SettingsBodyProps) {
-  const { t, dateDisplayFormat, setDateDisplayFormat, defaultNoteWidth, setDefaultNoteWidth, editorFont, setEditorFont, sidebarTypePluralizationEnabled, setSidebarTypePluralizationEnabled, initialH1AutoRename, setInitialH1AutoRename, hideGitignoredFiles, setHideGitignoredFiles, allNotesFileVisibility, setAllNotesFileVisibility } = options
+  const { t, dateDisplayFormat, setDateDisplayFormat, defaultNoteWidth, setDefaultNoteWidth, sidebarTypePluralizationEnabled, setSidebarTypePluralizationEnabled, initialH1AutoRename, setInitialH1AutoRename, hideGitignoredFiles, setHideGitignoredFiles, allNotesFileVisibility, setAllNotesFileVisibility } = options
   return (
     <SettingsSection id={SETTINGS_SECTION_IDS.content}>
       <VaultContentSettingsSection
@@ -723,8 +730,6 @@ function SettingsContentSections(options: SettingsBodyProps) {
         setDateDisplayFormat={setDateDisplayFormat}
         defaultNoteWidth={defaultNoteWidth}
         setDefaultNoteWidth={setDefaultNoteWidth}
-        editorFont={editorFont}
-        setEditorFont={setEditorFont}
         sidebarTypePluralizationEnabled={sidebarTypePluralizationEnabled}
         setSidebarTypePluralizationEnabled={setSidebarTypePluralizationEnabled}
         initialH1AutoRename={initialH1AutoRename}
@@ -846,12 +851,37 @@ function AppearanceSettingsSection({
   t,
   themeMode,
   setThemeMode,
-}: Pick<SettingsBodyProps, 't' | 'themeMode' | 'setThemeMode'>) {
+  editorFont,
+  setEditorFont,
+}: Pick<SettingsBodyProps, 't' | 'themeMode' | 'setThemeMode' | 'editorFont' | 'setEditorFont'>) {
   return (
-    <SettingsRow label={t('settings.theme.label')} description={t('settings.appearance.description')}>
-      <ThemeModeControl value={themeMode} onChange={setThemeMode} t={t} />
-    </SettingsRow>
+    <>
+      <SettingsRow label={t('settings.theme.label')} description={t('settings.appearance.description')}>
+        <ThemeModeControl value={themeMode} onChange={setThemeMode} t={t} />
+      </SettingsRow>
+      <SettingsRow label={t('settings.editorFont.label')} description={t('settings.editorFont.description')}>
+        <SelectControl
+          ariaLabel={t('settings.editorFont.label')}
+          value={editorFont}
+          onValueChange={(value) => setEditorFont(value as EditorFont)}
+          options={buildEditorFontOptions(t)}
+          testId="settings-editor-font"
+        />
+      </SettingsRow>
+    </>
   )
+}
+
+const EDITOR_FONT_LABEL_KEYS: Record<EditorFont, TranslationKey> = {
+  '0xproto': 'settings.editorFont.0xproto',
+  inter: 'settings.editorFont.inter',
+  'jetbrains-mono': 'settings.editorFont.jetbrainsMono',
+  'ibm-plex-mono': 'settings.editorFont.ibmPlexMono',
+  system: 'settings.editorFont.system',
+}
+
+function buildEditorFontOptions(t: Translate): Array<{ value: EditorFont; label: string }> {
+  return EDITOR_FONTS.map((value) => ({ value, label: t(EDITOR_FONT_LABEL_KEYS[value]) }))
 }
 
 function ThemeModeControl({
