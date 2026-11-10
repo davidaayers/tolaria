@@ -1,5 +1,7 @@
 import { useMemo } from 'react'
 import themeConfig from '../theme.json'
+import { EDITOR_FONT_FAMILIES } from '../utils/editorFont'
+import { useEditorFont } from './useAppPreferences'
 
 type ThemeValue = string | number | Record<string, unknown> | unknown[]
 
@@ -49,13 +51,15 @@ function camelToKebab(str: string): string {
 }
 
 export function useEditorTheme() {
+  const editorFont = useEditorFont()
   const { cssVars, styleString } = useMemo(() => {
     const vars = flattenTheme(themeConfig as Record<string, ThemeValue>)
+    vars['--editor-font-family'] = EDITOR_FONT_FAMILIES[editorFont]
     const str = Object.entries(vars)
       .map(([k, v]) => `${k}: ${v};`)
       .join('\n')
     return { cssVars: vars, styleString: str }
-  }, [])
+  }, [editorFont])
 
   return { themeConfig, cssVars, styleString }
 }

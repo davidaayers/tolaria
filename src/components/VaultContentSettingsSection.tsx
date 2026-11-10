@@ -2,6 +2,7 @@ import { Article } from '@phosphor-icons/react'
 import type { TranslationKey, TranslationValues } from '../lib/i18n'
 import type { NoteWidthMode } from '../types'
 import type { AllNotesFileVisibility } from '../utils/allNotesFileVisibility'
+import { EDITOR_FONTS, type EditorFont } from '../utils/editorFont'
 import { DATE_DISPLAY_FORMATS, type DateDisplayFormat } from '../utils/dateDisplay'
 import { SectionHeading, SelectControl, SettingsGroup, SettingsRow, SettingsSwitchRow } from './SettingsControls'
 
@@ -13,6 +14,8 @@ interface VaultContentSettingsSectionProps {
   setDateDisplayFormat: (value: DateDisplayFormat) => void
   defaultNoteWidth: NoteWidthMode
   setDefaultNoteWidth: (value: NoteWidthMode) => void
+  editorFont: EditorFont
+  setEditorFont: (value: EditorFont) => void
   sidebarTypePluralizationEnabled: boolean
   setSidebarTypePluralizationEnabled: (value: boolean) => void
   initialH1AutoRename: boolean
@@ -28,6 +31,13 @@ const NOTE_WIDTH_LABEL_KEYS: Record<NoteWidthMode, TranslationKey> = {
   normal: 'settings.noteWidth.normal',
   wide: 'settings.noteWidth.wide',
 }
+const EDITOR_FONT_LABEL_KEYS: Record<EditorFont, TranslationKey> = {
+  '0xproto': 'settings.editorFont.0xproto',
+  inter: 'settings.editorFont.inter',
+  'jetbrains-mono': 'settings.editorFont.jetbrainsMono',
+  'ibm-plex-mono': 'settings.editorFont.ibmPlexMono',
+  system: 'settings.editorFont.system',
+}
 const DATE_DISPLAY_LABEL_KEYS: Record<DateDisplayFormat, TranslationKey> = {
   us: 'settings.dateDisplay.us',
   european: 'settings.dateDisplay.european',
@@ -40,6 +50,10 @@ function buildNoteWidthOptions(t: Translate): Array<{ value: NoteWidthMode; labe
     value,
     label: t(Reflect.get(NOTE_WIDTH_LABEL_KEYS, value) as Parameters<Translate>[0]),
   }))
+}
+
+function buildEditorFontOptions(t: Translate): Array<{ value: EditorFont; label: string }> {
+  return EDITOR_FONTS.map((value) => ({ value, label: t(EDITOR_FONT_LABEL_KEYS[value]) }))
 }
 
 function buildDateDisplayOptions(t: Translate): Array<{ value: DateDisplayFormat; label: string }> {
@@ -56,6 +70,8 @@ export function VaultContentSettingsSection(functionOptions: VaultContentSetting
     setDateDisplayFormat,
     defaultNoteWidth,
     setDefaultNoteWidth,
+    editorFont,
+    setEditorFont,
     sidebarTypePluralizationEnabled,
     setSidebarTypePluralizationEnabled,
     initialH1AutoRename,
@@ -94,6 +110,16 @@ export function VaultContentSettingsSection(functionOptions: VaultContentSetting
             onValueChange={(value) => setDefaultNoteWidth(value as NoteWidthMode)}
             options={buildNoteWidthOptions(t)}
             testId="settings-default-note-width"
+          />
+        </SettingsRow>
+
+        <SettingsRow label={t('settings.editorFont.label')} description={t('settings.editorFont.description')}>
+          <SelectControl
+            ariaLabel={t('settings.editorFont.label')}
+            value={editorFont}
+            onValueChange={(value) => setEditorFont(value as EditorFont)}
+            options={buildEditorFontOptions(t)}
+            testId="settings-editor-font"
           />
         </SettingsRow>
 

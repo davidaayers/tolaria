@@ -518,6 +518,7 @@ describe('SettingsPanel', () => {
 
     expect(screen.getByTestId('settings-date-display-format')).toHaveAttribute('data-value', 'friendly')
     expect(screen.getByTestId('settings-default-note-width')).toHaveAttribute('data-value', 'normal')
+    expect(screen.getByTestId('settings-editor-font')).toHaveAttribute('data-value', '0xproto')
     expect(
       within(screen.getByTestId('settings-sidebar-type-pluralization')).getByRole('switch')
     ).toHaveAttribute('aria-checked', 'true')
@@ -554,12 +555,15 @@ describe('SettingsPanel', () => {
     fireEvent.click(screen.getByRole('option', { name: 'ISO (2026-05-11)' }))
     fireEvent.pointerDown(screen.getByTestId('settings-default-note-width'), { button: 0, pointerType: 'mouse' })
     fireEvent.click(screen.getByRole('option', { name: 'Wide' }))
+    fireEvent.pointerDown(screen.getByTestId('settings-editor-font'), { button: 0, pointerType: 'mouse' })
+    fireEvent.click(screen.getByRole('option', { name: 'Inter' }))
     fireEvent.click(within(screen.getByTestId('settings-sidebar-type-pluralization')).getByRole('switch'))
     fireEvent.click(screen.getByTestId('settings-save'))
 
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
       date_display_format: 'iso',
       note_width_mode: 'wide',
+      editor_font: 'inter',
       sidebar_type_pluralization_enabled: false,
     }))
     expect(trackEventMock).toHaveBeenCalledWith('date_display_format_changed', { format: 'iso' })

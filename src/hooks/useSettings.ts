@@ -15,6 +15,7 @@ import { normalizeDateDisplayFormat } from '../utils/dateDisplay'
 import { DEFAULT_THEME_MODE, normalizeThemeMode, type ThemeMode } from '../lib/themeMode'
 import type { Settings } from '../types'
 import { normalizeNoteWidthMode } from '../utils/noteWidth'
+import { normalizeEditorFont } from '../utils/editorFont'
 
 type UnknownRecord = Record<string, unknown>
 type AiWorkspaceConversationSetting = NonNullable<Settings['ai_workspace_conversations']>[number]
@@ -60,6 +61,7 @@ const EMPTY_SETTINGS: Settings = {
   ui_language: null,
   date_display_format: null,
   note_width_mode: null,
+  editor_font: null,
   sidebar_type_pluralization_enabled: null,
   default_ai_agent: null,
   ai_features_enabled: null,
@@ -99,6 +101,7 @@ function normalizeSettings(settings: Settings): Settings {
     ui_language: serializeUiLanguagePreference(settings.ui_language),
     date_display_format: normalizeDateDisplayFormat(settings.date_display_format),
     note_width_mode: normalizeNoteWidthMode(settings.note_width_mode),
+    editor_font: normalizeEditorFont(settings.editor_font),
     sidebar_type_pluralization_enabled: nullableBoolean(settings.sidebar_type_pluralization_enabled),
     ai_features_enabled: nullableBoolean(settings.ai_features_enabled),
     default_ai_agent: normalizeStoredAiAgent(settings.default_ai_agent),

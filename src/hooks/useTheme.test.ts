@@ -1,8 +1,24 @@
 import { describe, expect, it } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { useEditorTheme } from './useTheme'
+import { AppPreferencesProvider } from './useAppPreferences'
+import { createElement, type ReactNode } from 'react'
 
 describe('useEditorTheme', () => {
+  it('uses 0xProto as the default editor font', () => {
+    const { result } = renderHook(() => useEditorTheme())
+
+    expect(result.current.cssVars['--editor-font-family']).toMatch(/^'0xProto'/)
+  })
+
+  it('applies the editor font chosen in preferences', () => {
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(AppPreferencesProvider, { editorFont: 'inter' }, children)
+    const { result } = renderHook(() => useEditorTheme(), { wrapper })
+
+    expect(result.current.cssVars['--editor-font-family']).toMatch(/^'Inter'/)
+  })
+
   it('keeps inline code on the muted editor surface without exporting code block overrides', () => {
     const { result } = renderHook(() => useEditorTheme())
 

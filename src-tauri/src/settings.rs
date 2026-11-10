@@ -16,6 +16,13 @@ const SUPPORTED_DEFAULT_AI_AGENTS: &[&str] = &[
 ];
 pub const DEFAULT_HIDE_GITIGNORED_FILES: bool = true;
 const SUPPORTED_NOTE_WIDTH_MODES: &[&str] = &["normal", "wide"];
+const SUPPORTED_EDITOR_FONTS: &[&str] = &[
+    "0xproto",
+    "inter",
+    "jetbrains-mono",
+    "ibm-plex-mono",
+    "system",
+];
 const SUPPORTED_DATE_DISPLAY_FORMATS: &[&str] = &["us", "european", "friendly", "iso"];
 const SUPPORTED_UI_LANGUAGE_ALIASES: &[(&str, &str)] = &[
     ("en", "en"),
@@ -111,6 +118,7 @@ pub struct Settings {
     pub ui_language: Option<String>,
     pub date_display_format: Option<String>,
     pub note_width_mode: Option<String>,
+    pub editor_font: Option<String>,
     pub sidebar_type_pluralization_enabled: Option<bool>,
     pub initial_h1_auto_rename_enabled: Option<bool>,
     pub ai_features_enabled: Option<bool>,
@@ -168,6 +176,13 @@ pub fn normalize_theme_mode(value: Option<&str>) -> Option<String> {
 pub fn normalize_note_width_mode(value: Option<&str>) -> Option<String> {
     match value.map(|candidate| candidate.trim().to_ascii_lowercase()) {
         Some(mode) if SUPPORTED_NOTE_WIDTH_MODES.contains(&mode.as_str()) => Some(mode),
+        _ => None,
+    }
+}
+
+pub fn normalize_editor_font(value: Option<&str>) -> Option<String> {
+    match value.map(|candidate| candidate.trim().to_ascii_lowercase()) {
+        Some(font) if SUPPORTED_EDITOR_FONTS.contains(&font.as_str()) => Some(font),
         _ => None,
     }
 }
@@ -240,6 +255,7 @@ fn normalize_settings(settings: Settings) -> Settings {
         ui_language: normalize_ui_language(settings.ui_language.as_deref()),
         date_display_format: normalize_date_display_format(settings.date_display_format.as_deref()),
         note_width_mode: normalize_note_width_mode(settings.note_width_mode.as_deref()),
+        editor_font: normalize_editor_font(settings.editor_font.as_deref()),
         sidebar_type_pluralization_enabled: settings.sidebar_type_pluralization_enabled,
         initial_h1_auto_rename_enabled: settings.initial_h1_auto_rename_enabled,
         ai_features_enabled: settings.ai_features_enabled,
