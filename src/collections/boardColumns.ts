@@ -23,6 +23,8 @@ export interface BoardColumn {
   cards: BoardCard[]
   visibleCards: BoardCard[]
   hiddenCount: number
+  /** Cards that matched this column's value but were rejected by its own `filter`. */
+  filteredOutCount: number
   limit: number | null
   overLimit: boolean
 }
@@ -89,7 +91,8 @@ function finishColumn(
   config: BoardColumnConfig | null,
   rawCards: BoardCard[],
 ): BoardColumn {
-  const cards = applyColumnSort(applyColumnFilter(rawCards, config), config)
+  const filtered = applyColumnFilter(rawCards, config)
+  const cards = applyColumnSort(filtered, config)
   const max = config?.max ?? null
   const limit = config?.limit ?? null
   const visibleCards = max === null ? cards : cards.slice(0, max)
@@ -99,6 +102,7 @@ function finishColumn(
     cards,
     visibleCards,
     hiddenCount: cards.length - visibleCards.length,
+    filteredOutCount: rawCards.length - filtered.length,
     limit,
     overLimit: limit !== null && cards.length > limit,
   }

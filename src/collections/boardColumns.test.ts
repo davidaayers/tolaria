@@ -133,6 +133,21 @@ describe('buildBoardColumns', () => {
     expect(result.some((c) => c.isOther)).toBe(false)
   })
 
+  it('counts the cards a column filter hides, so the board can say so', () => {
+    const filter = { all: [{ field: 'completed', op: 'after' as const, value: '2026-02-01' }] }
+    const result = buildBoardColumns(
+      [
+        withStatus('old', 'done', { properties: { Stage: 'done', completed: '2026-01-10' } }),
+        withStatus('undated', 'done'),
+        withStatus('new', 'done', { properties: { Stage: 'done', completed: '2026-02-10' } }),
+        withStatus('open', 'todo'),
+      ],
+      board([column('todo'), column('done', { filter })]),
+    )
+    expect(result.map((c) => c.filteredOutCount)).toEqual([0, 2])
+    expect(result[1].cards).toHaveLength(1)
+  })
+
   it('caps visible cards at max and reports how many are hidden', () => {
     const entries = ['a', 'b', 'c', 'd'].map((t) => withStatus(t, 'todo'))
     const [todo] = buildBoardColumns(entries, board([column('todo', { max: 3 })]))
