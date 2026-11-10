@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { makeEntry } from '../test-utils/noteListTestUtils'
 import type { VaultEntry } from '../types'
 import { buildBoardColumns } from './boardColumns'
-import { planBoardMove } from './boardMove'
+import { applyBoardMovePlan, planBoardMove } from './boardMove'
 import type { BoardCollectionPresentationConfig, BoardColumnConfig } from './collectionTypes'
 
 const TODAY = '2026-11-10'
@@ -62,5 +62,26 @@ describe('planBoardMove', () => {
     const entry = note({ Stage: 'done', completed: '2026-11-01' })
     expect(plan(entry, columns, 'todo')).toEqual({ writes: [{ key: 'Stage', value: 'todo' }], removals: ['completed'] })
     expect(plan(entry, columns, 'shipped')?.removals).toEqual([])
+  })
+})
+
+describe('applyBoardMovePlan', () => {
+  it('writes every property, then removes stamps, in order', async () => {
+    const calls: string[] = []
+    await applyBoardMovePlan('/vault/a.md', { writes: [{ key: 'Stage', value: 'done' }, { key: 'completed', value: TODAY }], removals: ['started'] }, {
+      updateProperty: async (_path, key, value) => { calls.push(`set ${key}=${value}`) },
+      deleteProperty: async (_path, key) => { calls.push(`delete ${key}`) },
+    })
+    expect(calls).toEqual(['set Stage=done', `set completed=${TODAY}`, 'delete started'])
+  })
+
+  it('stops at the first failed write so later edits are not applied', async () => {
+    const calls: string[] = []
+    const result = applyBoardMovePlan('/vault/a.md', { writes: [{ key: 'Stage', value: 'done' }, { key: 'completed', value: TODAY }], removals: [] }, {
+      updateProperty: async (_path, key) => { calls.push(key); throw new Error('write failed') },
+      deleteProperty: async () => undefined,
+    })
+    await expect(result).rejects.toThrow('write failed')
+    expect(calls).toEqual(['Stage'])
   })
 })

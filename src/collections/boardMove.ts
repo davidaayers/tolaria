@@ -53,3 +53,14 @@ export function planBoardMove({ entry, groupBy, columns, target, today }: BoardM
   if (stamp) writes.push({ key: stamp, value: today })
   return { writes, removals: stampRemovals(source, target) }
 }
+
+export interface BoardMoveWriters {
+  updateProperty: (path: string, key: string, value: string) => Promise<unknown>
+  deleteProperty: (path: string, key: string) => Promise<unknown>
+}
+
+/** Apply a move plan through the existing frontmatter write path, one edit at a time. */
+export async function applyBoardMovePlan(path: string, plan: BoardMovePlan, writers: BoardMoveWriters): Promise<void> {
+  for (const { key, value } of plan.writes) await writers.updateProperty(path, key, value)
+  for (const key of plan.removals) await writers.deleteProperty(path, key)
+}
