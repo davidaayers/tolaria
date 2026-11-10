@@ -459,6 +459,7 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
     dateDisplayFormat,
     documentThemeMode,
     editorFont,
+    editorFontSize,
     handleSetThemeMode,
     handleSetUiLanguage,
     handleToggleThemeMode,
@@ -1662,7 +1663,7 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
 
   if (aiWorkspaceWindow) {
     return (
-      <AppPreferencesProvider appLocale={appLocale} dateDisplayFormat={dateDisplayFormat} editorFont={editorFont}>
+      <AppPreferencesProvider appLocale={appLocale} dateDisplayFormat={dateDisplayFormat} editorFont={editorFont} editorFontSize={editorFontSize}>
         {aiWorkspaceSurface}
       </AppPreferencesProvider>
     )
@@ -1672,7 +1673,7 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
   const noteListModifiedFilesError = isChangesSelection ? gitSurfaces.changesModifiedFilesError : null
 
   return (
-    <AppPreferencesProvider appLocale={appLocale} dateDisplayFormat={dateDisplayFormat} editorFont={editorFont}>
+    <AppPreferencesProvider appLocale={appLocale} dateDisplayFormat={dateDisplayFormat} editorFont={editorFont} editorFontSize={editorFontSize}>
       <div className="app-shell">
         <div className="app" data-collection-layout={collectionLayout} data-collection-note-open={activeTab ? 'true' : 'false'}>
           {sidebarVisible && (

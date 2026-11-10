@@ -12,6 +12,7 @@ import {
 } from '../lib/i18n'
 import { DEFAULT_DATE_DISPLAY_FORMAT, normalizeDateDisplayFormat, type DateDisplayFormat } from '../utils/dateDisplay'
 import { DEFAULT_EDITOR_FONT, normalizeEditorFont, type EditorFont } from '../utils/editorFont'
+import { DEFAULT_EDITOR_FONT_SIZE, normalizeEditorFontSize } from '../utils/editorFontSize'
 import { resolveAllNotesFileVisibility } from '../utils/allNotesFileVisibility'
 import { useAiAgentPreferences } from './useAiAgentPreferences'
 import type { AiAgentsStatus } from '../lib/aiAgents'
@@ -32,12 +33,14 @@ interface AppPreferenceValues {
   appLocale: AppLocale
   dateDisplayFormat: DateDisplayFormat
   editorFont: EditorFont
+  editorFontSize: number
 }
 
 const DEFAULT_APP_PREFERENCES: AppPreferenceValues = {
   appLocale: DEFAULT_APP_LOCALE,
   dateDisplayFormat: DEFAULT_DATE_DISPLAY_FORMAT,
   editorFont: DEFAULT_EDITOR_FONT,
+  editorFontSize: DEFAULT_EDITOR_FONT_SIZE,
 }
 
 const AppPreferencesContext = createContext<AppPreferenceValues>(DEFAULT_APP_PREFERENCES)
@@ -47,15 +50,17 @@ export function AppPreferencesProvider({
   children,
   dateDisplayFormat = DEFAULT_DATE_DISPLAY_FORMAT,
   editorFont = DEFAULT_EDITOR_FONT,
+  editorFontSize = DEFAULT_EDITOR_FONT_SIZE,
 }: {
   children: ReactNode
   appLocale?: AppLocale
   dateDisplayFormat?: DateDisplayFormat
   editorFont?: EditorFont
+  editorFontSize?: number
 }) {
   const value = useMemo(
-    () => ({ appLocale, dateDisplayFormat, editorFont }),
-    [appLocale, dateDisplayFormat, editorFont],
+    () => ({ appLocale, dateDisplayFormat, editorFont, editorFontSize }),
+    [appLocale, dateDisplayFormat, editorFont, editorFontSize],
   )
   return createElement(AppPreferencesContext.Provider, { value }, children)
 }
@@ -70,6 +75,10 @@ export function useDateDisplayFormat(): DateDisplayFormat {
 
 export function useEditorFont(): EditorFont {
   return useContext(AppPreferencesContext).editorFont
+}
+
+export function useEditorFontSize(): number {
+  return useContext(AppPreferencesContext).editorFontSize
 }
 
 export function useAppPreferences({
@@ -94,6 +103,10 @@ export function useAppPreferences({
   const editorFont = useMemo(
     () => normalizeEditorFont(settings.editor_font) ?? DEFAULT_EDITOR_FONT,
     [settings.editor_font],
+  )
+  const editorFontSize = useMemo(
+    () => normalizeEditorFontSize(settings.editor_font_size) ?? DEFAULT_EDITOR_FONT_SIZE,
+    [settings.editor_font_size],
   )
   const allNotesFileVisibility = useMemo(
     () => resolveAllNotesFileVisibility(settings),
@@ -134,6 +147,7 @@ export function useAppPreferences({
     appLocale,
     dateDisplayFormat,
     editorFont,
+    editorFontSize,
     documentThemeMode,
     handleSetThemeMode,
     handleSetUiLanguage,

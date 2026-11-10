@@ -1,7 +1,26 @@
 import { useMemo } from 'react'
 import themeConfig from '../theme.json'
 import { EDITOR_FONT_FAMILIES } from '../utils/editorFont'
-import { useEditorFont } from './useAppPreferences'
+import { scaleToEditorFontSize } from '../utils/editorFontSize'
+import { useEditorFont, useEditorFontSize } from './useAppPreferences'
+
+const SCALED_FONT_SIZE_VARS = [
+  '--editor-font-size',
+  '--headings-h1-font-size',
+  '--headings-h2-font-size',
+  '--headings-h3-font-size',
+  '--headings-h4-font-size',
+  '--inline-styles-code-font-size',
+  '--table-font-size',
+]
+
+function scaleFontSizeVars(vars: Record<string, string>, editorFontSize: number) {
+  for (const name of SCALED_FONT_SIZE_VARS) {
+    const themeSize = Number.parseFloat(vars[name] ?? '')
+    if (Number.isNaN(themeSize)) continue
+    vars[name] = `${scaleToEditorFontSize(themeSize, editorFontSize)}px`
+  }
+}
 
 type ThemeValue = string | number | Record<string, unknown> | unknown[]
 
@@ -52,14 +71,16 @@ function camelToKebab(str: string): string {
 
 export function useEditorTheme() {
   const editorFont = useEditorFont()
+  const editorFontSize = useEditorFontSize()
   const { cssVars, styleString } = useMemo(() => {
     const vars = flattenTheme(themeConfig as Record<string, ThemeValue>)
     vars['--editor-font-family'] = EDITOR_FONT_FAMILIES[editorFont]
+    scaleFontSizeVars(vars, editorFontSize)
     const str = Object.entries(vars)
       .map(([k, v]) => `${k}: ${v};`)
       .join('\n')
     return { cssVars: vars, styleString: str }
-  }, [editorFont])
+  }, [editorFont, editorFontSize])
 
   return { themeConfig, cssVars, styleString }
 }

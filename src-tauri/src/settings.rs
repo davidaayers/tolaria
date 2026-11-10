@@ -23,6 +23,7 @@ const SUPPORTED_EDITOR_FONTS: &[&str] = &[
     "ibm-plex-mono",
     "system",
 ];
+const SUPPORTED_EDITOR_FONT_SIZES: &[u32] = &[13, 14, 15, 16, 18, 20];
 const SUPPORTED_DATE_DISPLAY_FORMATS: &[&str] = &["us", "european", "friendly", "iso"];
 const SUPPORTED_UI_LANGUAGE_ALIASES: &[(&str, &str)] = &[
     ("en", "en"),
@@ -119,6 +120,7 @@ pub struct Settings {
     pub date_display_format: Option<String>,
     pub note_width_mode: Option<String>,
     pub editor_font: Option<String>,
+    pub editor_font_size: Option<u32>,
     pub sidebar_type_pluralization_enabled: Option<bool>,
     pub initial_h1_auto_rename_enabled: Option<bool>,
     pub ai_features_enabled: Option<bool>,
@@ -185,6 +187,10 @@ pub fn normalize_editor_font(value: Option<&str>) -> Option<String> {
         Some(font) if SUPPORTED_EDITOR_FONTS.contains(&font.as_str()) => Some(font),
         _ => None,
     }
+}
+
+pub fn normalize_editor_font_size(value: Option<u32>) -> Option<u32> {
+    value.filter(|size| SUPPORTED_EDITOR_FONT_SIZES.contains(size))
 }
 
 pub fn normalize_date_display_format(value: Option<&str>) -> Option<String> {
@@ -256,6 +262,7 @@ fn normalize_settings(settings: Settings) -> Settings {
         date_display_format: normalize_date_display_format(settings.date_display_format.as_deref()),
         note_width_mode: normalize_note_width_mode(settings.note_width_mode.as_deref()),
         editor_font: normalize_editor_font(settings.editor_font.as_deref()),
+        editor_font_size: normalize_editor_font_size(settings.editor_font_size),
         sidebar_type_pluralization_enabled: settings.sidebar_type_pluralization_enabled,
         initial_h1_auto_rename_enabled: settings.initial_h1_auto_rename_enabled,
         ai_features_enabled: settings.ai_features_enabled,

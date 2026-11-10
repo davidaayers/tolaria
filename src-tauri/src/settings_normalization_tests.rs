@@ -40,6 +40,8 @@ fn test_settings_json_roundtrip() {
         ui_language: Some("zh-Hans".to_string()),
         date_display_format: Some("iso".to_string()),
         note_width_mode: Some("wide".to_string()),
+        editor_font: Some("inter".to_string()),
+        editor_font_size: Some(18),
         sidebar_type_pluralization_enabled: Some(false),
         initial_h1_auto_rename_enabled: Some(false),
         ai_features_enabled: Some(false),
@@ -317,6 +319,21 @@ fn test_editor_font_is_normalized_and_invalid_values_filtered() {
         ..Default::default()
     });
     assert!(loaded.editor_font.is_none());
+}
+
+#[test]
+fn test_editor_font_size_keeps_supported_sizes_and_filters_others() {
+    let loaded = save_and_reload(Settings {
+        editor_font_size: Some(18),
+        ..Default::default()
+    });
+    assert_eq!(loaded.editor_font_size, Some(18));
+
+    let loaded = save_and_reload(Settings {
+        editor_font_size: Some(17),
+        ..Default::default()
+    });
+    assert!(loaded.editor_font_size.is_none());
 }
 
 #[test]
