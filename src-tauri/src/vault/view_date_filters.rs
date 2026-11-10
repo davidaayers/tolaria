@@ -1,4 +1,4 @@
-use chrono::{DateTime, Duration, Months, NaiveDate, NaiveDateTime, Utc};
+use chrono::{DateTime, Datelike, Duration, Months, NaiveDate, NaiveDateTime, Utc};
 
 fn parse_relative_amount(token: &str) -> Option<u32> {
     match token {
@@ -29,6 +29,10 @@ fn parse_relative_date_filter(value: &str, reference: DateTime<Utc>) -> Option<D
         "today" => return Some(base),
         "yesterday" => return Some(base - Duration::days(1)),
         "tomorrow" => return Some(base + Duration::days(1)),
+        "start of week" => {
+            return Some(base - Duration::days(base.weekday().num_days_from_monday() as i64))
+        }
+        "start of month" => return base.with_day(1),
         _ => {}
     }
 
@@ -103,5 +107,41 @@ mod tests {
             .timestamp_millis();
 
         assert_eq!(parsed, expected);
+    }
+
+    fn midnight(year: i32, month: u32, day: u32) -> i64 {
+        Utc.with_ymd_and_hms(year, month, day, 0, 0, 0)
+            .unwrap()
+            .timestamp_millis()
+    }
+
+    #[test]
+    fn parses_start_of_week_as_monday() {
+        let wednesday = Utc.with_ymd_and_hms(2026, 4, 8, 12, 0, 0).unwrap();
+        let monday = Utc.with_ymd_and_hms(2026, 4, 6, 9, 0, 0).unwrap();
+        let sunday = Utc.with_ymd_and_hms(2026, 4, 12, 23, 0, 0).unwrap();
+
+        assert_eq!(
+            parse_date_filter_timestamp("start of week", wednesday),
+            Some(midnight(2026, 4, 6))
+        );
+        assert_eq!(
+            parse_date_filter_timestamp("Start of Week", monday),
+            Some(midnight(2026, 4, 6))
+        );
+        assert_eq!(
+            parse_date_filter_timestamp("start of week", sunday),
+            Some(midnight(2026, 4, 6))
+        );
+    }
+
+    #[test]
+    fn parses_start_of_month() {
+        let reference = Utc.with_ymd_and_hms(2026, 4, 8, 12, 0, 0).unwrap();
+
+        assert_eq!(
+            parse_date_filter_timestamp("start of month", reference),
+            Some(midnight(2026, 4, 1))
+        );
     }
 }
