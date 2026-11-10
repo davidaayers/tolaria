@@ -13,6 +13,18 @@ const RELEASES_BASE_URL: &str = "https://refactoringhq.github.io/tolaria";
 const POISONED_STABLE_RECOVERY_FLOOR: &str = "2026.8.19";
 const UPDATER_HTTP_TIMEOUT: Duration = Duration::from_secs(5);
 const UPDATER_USER_AGENT: &str = concat!("Tolaria/", env!("CARGO_PKG_VERSION"));
+/// Set at build time (`TOLARIA_DISABLE_UPDATER=1`) for builds that must never
+/// contact the official release feed, such as a personal fork.
+const DISABLE_UPDATER_BUILD_FLAG: Option<&str> = option_env!("TOLARIA_DISABLE_UPDATER");
+const UPDATES_DISABLED_MESSAGE: &str = "Updates are disabled in this build";
+
+fn updates_disabled_for(flag: Option<&str>) -> bool {
+    matches!(flag.map(str::trim), Some(value) if !value.is_empty() && value != "0")
+}
+
+fn updates_disabled() -> bool {
+    updates_disabled_for(DISABLE_UPDATER_BUILD_FLAG)
+}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -291,6 +303,9 @@ pub async fn check_for_app_update<R: Runtime>(
     app_handle: AppHandle<R>,
     release_channel: Option<String>,
 ) -> Result<Option<AppUpdateMetadata>, String> {
+    if updates_disabled() {
+        return Ok(None);
+    }
     timeout_updater_check(
         || async {
             let channel = ReleaseChannel::from_settings_value(release_channel.as_deref());
@@ -314,6 +329,9 @@ pub async fn download_and_install_app_update<R: Runtime>(
     expected_version: String,
     on_event: Channel<AppUpdateDownloadEvent>,
 ) -> Result<(), String> {
+    if updates_disabled() {
+        return Err(UPDATES_DISABLED_MESSAGE.to_string());
+    }
     let channel = ReleaseChannel::from_settings_value(release_channel.as_deref());
     let updater = build_updater(&app_handle, updater_endpoint(channel).await?)?;
     let update = refreshed_update(updater, &expected_version).await?;
