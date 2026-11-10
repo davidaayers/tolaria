@@ -1,7 +1,7 @@
 use super::{
-    latest_alpha_release_metadata_url, updates_disabled_for, should_install_update,
-    should_recover_poisoned_calendar_version, AppUpdateDownloadEvent, AppUpdateMetadata,
-    GitHubAsset, GitHubRelease, ReleaseChannel,
+    latest_alpha_release_metadata_url, should_install_update,
+    should_recover_poisoned_calendar_version, updates_disabled_for, AppUpdateDownloadEvent,
+    AppUpdateMetadata, GitHubAsset, GitHubRelease, ReleaseChannel,
 };
 use serde_json::json;
 
