@@ -1,6 +1,9 @@
-import type { ViewDefinition } from '../types'
+import type { FilterGroup, ViewDefinition } from '../types'
 import {
+  COLLECTION_PRESENTATION_BOARD,
   COLLECTION_PRESENTATION_LIST,
+  type BoardCollectionPresentationConfig,
+  type BoardColumnConfig,
   type CollectionPresentationConfig,
   type ListCollectionPresentationConfig,
 } from './collectionTypes'
@@ -17,6 +20,60 @@ function nullableString(value: unknown): string | null {
 
 function stringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+}
+
+function positiveInteger(value: unknown): number | null {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : null
+}
+
+function filterGroup(value: unknown): FilterGroup | null {
+  if (!isRecord(value)) return null
+  return Array.isArray(value.all) || Array.isArray(value.any) ? (value as FilterGroup) : null
+}
+
+function boardColumn(value: unknown): BoardColumnConfig | null {
+  if (!isRecord(value)) return null
+  const columnValue = nullableString(value.value)
+  if (columnValue === null) return null
+  return {
+    value: columnValue,
+    label: nullableString(value.label),
+    limit: positiveInteger(value.limit),
+    max: positiveInteger(value.max),
+    sort: nullableString(value.sort),
+    filter: filterGroup(value.filter),
+    stamp: nullableString(value.stamp),
+  }
+}
+
+function normalizedColumnValue(column: BoardColumnConfig): string {
+  return column.value.trim().toLowerCase()
+}
+
+function boardColumns(value: unknown): BoardColumnConfig[] | null {
+  if (!Array.isArray(value)) return null
+  const seen = new Set<string>()
+  const columns: BoardColumnConfig[] = []
+  for (const raw of value) {
+    const column = boardColumn(raw)
+    if (!column || seen.has(normalizedColumnValue(column))) continue
+    seen.add(normalizedColumnValue(column))
+    columns.push(column)
+  }
+  return columns
+}
+
+function boardPresentation(source: UnknownRecord): BoardCollectionPresentationConfig | null {
+  const groupBy = nullableString(source.groupBy)
+  if (groupBy === null) return null
+  return {
+    type: COLLECTION_PRESENTATION_BOARD,
+    groupBy,
+    properties: stringArray(source.properties),
+    columns: boardColumns(source.columns),
+    staleAfterDays: positiveInteger(source.staleAfterDays),
+    staleFrom: nullableString(source.staleFrom),
+  }
 }
 
 function listPresentation(source: UnknownRecord, fallback: ListCollectionPresentationConfig): ListCollectionPresentationConfig {
@@ -39,6 +96,7 @@ export function presentationFromViewDefinition(definition: ViewDefinition): Coll
   }
   const rawPresentation = definition.presentation
   if (!isRecord(rawPresentation)) return fallback
+  if (rawPresentation.type === COLLECTION_PRESENTATION_BOARD) return boardPresentation(rawPresentation) ?? fallback
   if (rawPresentation.type !== COLLECTION_PRESENTATION_LIST) return fallback
   return listPresentation(rawPresentation, fallback)
 }
