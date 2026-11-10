@@ -44,7 +44,7 @@ function BoardCardButton({ card, selected, properties, allEntries, typeEntryMap,
       data-selected={selected}
       onClick={() => onSelect(entry)}
     >
-      <span className="w-full truncate text-sm font-medium text-foreground">{entry.title}</span>
+      <span className="line-clamp-2 w-full break-words text-sm font-medium text-foreground">{entry.title}</span>
       {properties.length > 0 && (
         <PropertyChips
           entry={entry}
