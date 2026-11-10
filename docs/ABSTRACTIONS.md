@@ -2212,3 +2212,7 @@ The editor schema reuses the durable embedded-HTML codec through `embeddedBlockP
 ## Visible note order
 
 `useNoteListModel` obtains one memoized `visibleEntries` array from `useVisibleNotesSync`: the entity followed by searched relationship groups in neighborhood views, or the searched list elsewhere. Keyboard navigation, range selection, and deletion focus consume that same array. App-level consumers receive the same order through `visibleNotesRef`, with deleted-note previews filtered out. Deletion focus snapshots change only when the list inputs or callbacks change; inbox auto-advance keeps its existing next-only rule.
+
+## Board presentation (ADR-0301)
+
+`presentationFromViewDefinition` validates a saved View's raw `presentation` block into a `BoardCollectionPresentationConfig` or falls back to `list`. `buildBoardColumns` (pure) turns the View's filtered notes into `BoardColumn`s: declared or derived columns, an Other column shown only when non-empty, per-column `filter`/`sort`/`max`/`limit`, and `filteredOutCount` for cards a column filter hides. `planBoardMove` and `applyBoardMovePlan` compute and apply the frontmatter edits for moving a card (group-by value plus `stamp` handling) through the existing frontmatter write path. `useBoardLayout` decides whether the selection renders as a board and remembers "open in editor" until the selection changes; `BoardWorkspace`, `BoardView` and `BoardSidePanel` render it.

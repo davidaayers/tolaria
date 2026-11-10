@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Sidebar } from './components/Sidebar'
 import { NoteList } from './components/NoteList'
+import { BoardWorkspace } from './components/board/BoardWorkspace'
+import { useBoardLayout } from './hooks/useBoardLayout'
 import { LazyEditor } from './components/LazyEditor'
 import { ResizeHandle } from './components/ResizeHandle'
 import { CreateTypeDialog } from './components/CreateTypeDialog'
@@ -1273,6 +1275,15 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
     shouldBlockNeighborhoodEscape,
   })
 
+  const { board: boardLayout, showInList: showBoardViewAsList } = useBoardLayout({
+    selection: effectiveSelection,
+    views: vault.views,
+    entries: visibleEntries,
+  })
+  const handleOpenBoardNoteInList = useCallback((entry: VaultEntry) => {
+    showBoardViewAsList()
+    notes.handleSelectNote(entry)
+  }, [notes, showBoardViewAsList])
   const noteListColumnsLabel = useMemo(() => {
     if (effectiveSelection.kind === 'view') {
       const selectedView = vault.views.find((view) => viewMatchesSelection(view, effectiveSelection))
@@ -1675,6 +1686,21 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
               <ResizeHandle onResize={layout.handleSidebarResize} />
             </>
           )}
+          {boardLayout ? (
+            <div className="app__editor">
+              <BoardWorkspace
+                presentation={boardLayout.presentation}
+                viewSort={boardLayout.viewSort}
+                entries={boardLayout.entries}
+                allEntries={visibleEntries}
+                locale={appLocale}
+                onUpdateFrontmatter={notes.handleUpdateFrontmatter}
+                onDeleteProperty={notes.handleDeleteProperty}
+                onOpenInList={handleOpenBoardNoteInList}
+              />
+            </div>
+          ) : (
+            <>
           {noteListVisible && (
             <>
               <div className={`app__note-list${aiActivity.highlightElement === 'notelist' ? ' ai-highlight' : ''}`} style={{ width: layout.noteListWidth }}>
@@ -1768,6 +1794,8 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
               locale={appLocale}
             />
           </div>
+            </>
+          )}
         </div>
         <div data-testid="app-bottom-banner-stack" style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
           {platformCapabilities.updater && <UpdateBanner status={updateStatus} actions={updateActions} locale={appLocale} />}
