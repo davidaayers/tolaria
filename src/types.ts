@@ -4,6 +4,7 @@ import type { AiModelProvider } from './lib/aiTargets'
 import type { ThemeMode } from './lib/themeMode'
 import type { AppLocale } from './lib/i18n'
 import type { DateDisplayFormat } from './utils/dateDisplay'
+import type { EditorFont } from './utils/editorFont'
 import type {
   FilterCondition as SavedViewFilterCondition,
   FilterGroup as SavedViewFilterGroup,
@@ -145,6 +146,7 @@ export interface Settings {
   ui_language?: AppLocale | null
   date_display_format?: DateDisplayFormat | null
   note_width_mode?: NoteWidthMode | null
+  editor_font?: EditorFont | null
   sidebar_type_pluralization_enabled?: boolean | null
   initial_h1_auto_rename_enabled?: boolean | null
   ai_features_enabled?: boolean | null

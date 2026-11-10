@@ -63,6 +63,7 @@ import {
   type AllNotesFileVisibility,
 } from '../utils/allNotesFileVisibility'
 import { DEFAULT_NOTE_WIDTH_MODE, normalizeNoteWidthMode } from '../utils/noteWidth'
+import { DEFAULT_EDITOR_FONT, normalizeEditorFont, type EditorFont } from '../utils/editorFont'
 import { DEFAULT_DATE_DISPLAY_FORMAT, normalizeDateDisplayFormat, type DateDisplayFormat } from '../utils/dateDisplay'
 import { Button } from './ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
@@ -116,6 +117,7 @@ interface SettingsDraft {
   uiLanguage: UiLanguagePreference
   dateDisplayFormat: DateDisplayFormat
   defaultNoteWidth: NoteWidthMode
+  editorFont: EditorFont
   sidebarTypePluralizationEnabled: boolean
   initialH1AutoRename: boolean
   hideGitignoredFiles: boolean
@@ -170,6 +172,8 @@ interface SettingsBodyProps {
   setDateDisplayFormat: (value: DateDisplayFormat) => void
   defaultNoteWidth: NoteWidthMode
   setDefaultNoteWidth: (value: NoteWidthMode) => void
+  editorFont: EditorFont
+  setEditorFont: (value: EditorFont) => void
   sidebarTypePluralizationEnabled: boolean
   setSidebarTypePluralizationEnabled: (value: boolean) => void
   locale: AppLocale
@@ -233,6 +237,7 @@ function createSettingsDraft(settings: Settings, explicitOrganizationEnabled: bo
     uiLanguage: settings.ui_language ?? SYSTEM_UI_LANGUAGE,
     dateDisplayFormat: normalizeDateDisplayFormat(settings.date_display_format) ?? DEFAULT_DATE_DISPLAY_FORMAT,
     defaultNoteWidth: normalizeNoteWidthMode(settings.note_width_mode) ?? DEFAULT_NOTE_WIDTH_MODE,
+    editorFont: normalizeEditorFont(settings.editor_font) ?? DEFAULT_EDITOR_FONT,
     sidebarTypePluralizationEnabled: settings.sidebar_type_pluralization_enabled ?? true,
     initialH1AutoRename: settings.initial_h1_auto_rename_enabled ?? true,
     hideGitignoredFiles: shouldHideGitignoredFiles(settings),
@@ -284,6 +289,7 @@ function buildSettingsFromDraft(settings: Settings, draft: SettingsDraft): Setti
     ui_language: serializeUiLanguagePreference(draft.uiLanguage),
     date_display_format: draft.dateDisplayFormat,
     note_width_mode: draft.defaultNoteWidth,
+    editor_font: draft.editorFont,
     sidebar_type_pluralization_enabled: draft.sidebarTypePluralizationEnabled,
     initial_h1_auto_rename_enabled: draft.initialH1AutoRename,
     ai_features_enabled: draft.aiFeaturesEnabled,
@@ -617,6 +623,8 @@ function SettingsBodyFromDraft(options: SettingsBodyFromDraftProps) {
       setDateDisplayFormat={(value) => updateDraft('dateDisplayFormat', value)}
       defaultNoteWidth={draft.defaultNoteWidth}
       setDefaultNoteWidth={(value) => updateDraft('defaultNoteWidth', value)}
+      editorFont={draft.editorFont}
+      setEditorFont={(value) => updateDraft('editorFont', value)}
       sidebarTypePluralizationEnabled={draft.sidebarTypePluralizationEnabled}
       setSidebarTypePluralizationEnabled={(value) => updateDraft('sidebarTypePluralizationEnabled', value)}
       initialH1AutoRename={draft.initialH1AutoRename}
@@ -706,7 +714,7 @@ function SettingsSyncAndAppearanceSections(options: SettingsBodyProps) {
 }
 
 function SettingsContentSections(options: SettingsBodyProps) {
-  const { t, dateDisplayFormat, setDateDisplayFormat, defaultNoteWidth, setDefaultNoteWidth, sidebarTypePluralizationEnabled, setSidebarTypePluralizationEnabled, initialH1AutoRename, setInitialH1AutoRename, hideGitignoredFiles, setHideGitignoredFiles, allNotesFileVisibility, setAllNotesFileVisibility } = options
+  const { t, dateDisplayFormat, setDateDisplayFormat, defaultNoteWidth, setDefaultNoteWidth, editorFont, setEditorFont, sidebarTypePluralizationEnabled, setSidebarTypePluralizationEnabled, initialH1AutoRename, setInitialH1AutoRename, hideGitignoredFiles, setHideGitignoredFiles, allNotesFileVisibility, setAllNotesFileVisibility } = options
   return (
     <SettingsSection id={SETTINGS_SECTION_IDS.content}>
       <VaultContentSettingsSection
@@ -715,6 +723,8 @@ function SettingsContentSections(options: SettingsBodyProps) {
         setDateDisplayFormat={setDateDisplayFormat}
         defaultNoteWidth={defaultNoteWidth}
         setDefaultNoteWidth={setDefaultNoteWidth}
+        editorFont={editorFont}
+        setEditorFont={setEditorFont}
         sidebarTypePluralizationEnabled={sidebarTypePluralizationEnabled}
         setSidebarTypePluralizationEnabled={setSidebarTypePluralizationEnabled}
         initialH1AutoRename={initialH1AutoRename}

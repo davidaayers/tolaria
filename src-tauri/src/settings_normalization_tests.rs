@@ -305,6 +305,21 @@ fn test_invalid_note_width_mode_is_filtered() {
 }
 
 #[test]
+fn test_editor_font_is_normalized_and_invalid_values_filtered() {
+    let loaded = save_and_reload(Settings {
+        editor_font: Some("  0xProto ".to_string()),
+        ..Default::default()
+    });
+    assert_eq!(loaded.editor_font.as_deref(), Some("0xproto"));
+
+    let loaded = save_and_reload(Settings {
+        editor_font: Some("comic-sans".to_string()),
+        ..Default::default()
+    });
+    assert!(loaded.editor_font.is_none());
+}
+
+#[test]
 fn test_invalid_date_display_format_is_filtered() {
     let loaded = save_and_reload(Settings {
         date_display_format: Some("relative".to_string()),

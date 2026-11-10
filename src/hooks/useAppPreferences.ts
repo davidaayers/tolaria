@@ -11,6 +11,7 @@ import {
   type AppLocale,
 } from '../lib/i18n'
 import { DEFAULT_DATE_DISPLAY_FORMAT, normalizeDateDisplayFormat, type DateDisplayFormat } from '../utils/dateDisplay'
+import { DEFAULT_EDITOR_FONT, normalizeEditorFont, type EditorFont } from '../utils/editorFont'
 import { resolveAllNotesFileVisibility } from '../utils/allNotesFileVisibility'
 import { useAiAgentPreferences } from './useAiAgentPreferences'
 import type { AiAgentsStatus } from '../lib/aiAgents'
@@ -30,11 +31,13 @@ interface AppPreferencesConfig {
 interface AppPreferenceValues {
   appLocale: AppLocale
   dateDisplayFormat: DateDisplayFormat
+  editorFont: EditorFont
 }
 
 const DEFAULT_APP_PREFERENCES: AppPreferenceValues = {
   appLocale: DEFAULT_APP_LOCALE,
   dateDisplayFormat: DEFAULT_DATE_DISPLAY_FORMAT,
+  editorFont: DEFAULT_EDITOR_FONT,
 }
 
 const AppPreferencesContext = createContext<AppPreferenceValues>(DEFAULT_APP_PREFERENCES)
@@ -43,12 +46,17 @@ export function AppPreferencesProvider({
   appLocale = DEFAULT_APP_LOCALE,
   children,
   dateDisplayFormat = DEFAULT_DATE_DISPLAY_FORMAT,
+  editorFont = DEFAULT_EDITOR_FONT,
 }: {
   children: ReactNode
   appLocale?: AppLocale
   dateDisplayFormat?: DateDisplayFormat
+  editorFont?: EditorFont
 }) {
-  const value = useMemo(() => ({ appLocale, dateDisplayFormat }), [appLocale, dateDisplayFormat])
+  const value = useMemo(
+    () => ({ appLocale, dateDisplayFormat, editorFont }),
+    [appLocale, dateDisplayFormat, editorFont],
+  )
   return createElement(AppPreferencesContext.Provider, { value }, children)
 }
 
@@ -58,6 +66,10 @@ export function useAppLocale(): AppLocale {
 
 export function useDateDisplayFormat(): DateDisplayFormat {
   return useContext(AppPreferencesContext).dateDisplayFormat
+}
+
+export function useEditorFont(): EditorFont {
+  return useContext(AppPreferencesContext).editorFont
 }
 
 export function useAppPreferences({
@@ -78,6 +90,10 @@ export function useAppPreferences({
   const dateDisplayFormat = useMemo(
     () => normalizeDateDisplayFormat(settings.date_display_format) ?? DEFAULT_DATE_DISPLAY_FORMAT,
     [settings.date_display_format],
+  )
+  const editorFont = useMemo(
+    () => normalizeEditorFont(settings.editor_font) ?? DEFAULT_EDITOR_FONT,
+    [settings.editor_font],
   )
   const allNotesFileVisibility = useMemo(
     () => resolveAllNotesFileVisibility(settings),
@@ -117,6 +133,7 @@ export function useAppPreferences({
     allNotesFileVisibility,
     appLocale,
     dateDisplayFormat,
+    editorFont,
     documentThemeMode,
     handleSetThemeMode,
     handleSetUiLanguage,

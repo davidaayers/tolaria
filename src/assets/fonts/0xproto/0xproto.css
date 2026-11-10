@@ -1,0 +1,24 @@
+/* 0xProto 2.502 — SIL Open Font License 1.1, see LICENSE in this folder. */
+@font-face {
+  font-family: '0xProto';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./0xProto-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: '0xProto';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./0xProto-Italic.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: '0xProto';
+  font-style: normal;
+  font-weight: 600 700;
+  font-display: swap;
+  src: url('./0xProto-Bold.woff2') format('woff2');
+}

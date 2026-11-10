@@ -177,6 +177,7 @@ describe('mockHandlers coverage', () => {
       theme_mode: null,
       date_display_format: null,
       note_width_mode: null,
+      editor_font: null,
       sidebar_type_pluralization_enabled: null,
       initial_h1_auto_rename_enabled: null,
       ai_features_enabled: null,
