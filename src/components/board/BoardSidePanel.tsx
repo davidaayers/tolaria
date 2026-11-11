@@ -8,9 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 export interface BoardSidePanelProps {
   entry: VaultEntry
   columns: BoardColumn[]
-  /** Column currently holding the note, or null when a column filter hides it. */
+  /** First column holding the note, or null when it sits in none (it is then in Other). */
   currentColumnKey: string | null
-  movable: boolean
+  /** Keys of the columns the note can be moved into. */
+  movableKeys: ReadonlySet<string>
   locale: AppLocale
   onMove: (columnKey: string) => void
   onClose: () => void
@@ -35,10 +36,11 @@ function PropertyRows({ entry }: { entry: VaultEntry }) {
   )
 }
 
-function MoveControl({ columns, currentColumnKey, movable, locale, onMove }: Pick<BoardSidePanelProps, 'columns' | 'currentColumnKey' | 'movable' | 'locale' | 'onMove'>) {
+function MoveControl({ columns, currentColumnKey, movableKeys, locale, onMove }: Pick<BoardSidePanelProps, 'columns' | 'currentColumnKey' | 'movableKeys' | 'locale' | 'onMove'>) {
   const label = translate(locale, 'board.panel.status')
   const target = columns.filter((column) => !column.isOther)
   const current = target.some((column) => column.key === currentColumnKey) ? currentColumnKey ?? undefined : undefined
+  const movable = movableKeys.size > 0
   return (
     <div className="flex flex-col gap-1">
       <Select value={current} onValueChange={onMove} disabled={!movable}>
@@ -47,7 +49,7 @@ function MoveControl({ columns, currentColumnKey, movable, locale, onMove }: Pic
         </SelectTrigger>
         <SelectContent>
           {target.map((column) => (
-            <SelectItem key={column.key} value={column.key}>{column.label}</SelectItem>
+            <SelectItem key={column.key} value={column.key} disabled={!movableKeys.has(column.key) && column.key !== currentColumnKey}>{column.label}</SelectItem>
           ))}
         </SelectContent>
       </Select>

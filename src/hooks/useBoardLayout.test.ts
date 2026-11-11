@@ -8,7 +8,7 @@ function view(filename: string, presentation?: unknown, filters: ViewFile['defin
   return { filename, definition: { name: filename, icon: null, color: null, sort: 'title:asc', filters, presentation } }
 }
 
-const BOARD = { type: 'board', groupBy: 'Stage' }
+const BOARD = { type: 'board', columns: [{ view: 'a.yml' }] }
 const select = (filename: string): SidebarSelection => ({ kind: 'view', filename })
 const entries: VaultEntry[] = [
   makeEntry({ path: '/v/a.md', title: 'a', isA: 'Task' }),
@@ -30,14 +30,14 @@ describe('useBoardLayout', () => {
   it('returns the board config, view sort and only the entries that pass the View filter', () => {
     const filters = { all: [{ field: 'type', op: 'equals' as const, value: 'Task' }] }
     const { result } = renderLayout({ selection: select('board.yml'), views: [view('board.yml', BOARD, filters)] })
-    expect(result.current.board?.presentation).toMatchObject({ type: 'board', groupBy: 'Stage' })
+    expect(result.current.board?.presentation).toMatchObject({ type: 'board', columns: [{ view: 'a.yml' }] })
     expect(result.current.board?.viewSort).toBe('title:asc')
     expect(result.current.board?.view?.filename).toBe('board.yml')
     expect(result.current.board?.entries.map((entry) => entry.title)).toEqual(['a'])
   })
 
   it('falls back to the list for an invalid board block', () => {
-    const { result } = renderLayout({ selection: select('board.yml'), views: [view('board.yml', { type: 'board' })] })
+    const { result } = renderLayout({ selection: select('board.yml'), views: [view('board.yml', { type: 'board', columns: [] })] })
     expect(result.current.board).toBeNull()
   })
 

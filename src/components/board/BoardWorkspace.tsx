@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
 import { buildBoardColumns, type BoardColumn } from '../../collections/boardColumns'
-import { columnColorsFromViews } from '../../collections/boardColumnViews'
 import { applyBoardMovePlan, planBoardMove } from '../../collections/boardMove'
 import type { BoardCollectionPresentationConfig } from '../../collections/collectionTypes'
 import type { AppLocale } from '../../lib/i18n'
@@ -18,9 +17,9 @@ export interface BoardWorkspaceProps {
   /** Notes that passed the saved View's filter. */
   entries: VaultEntry[]
   allEntries: VaultEntry[]
-  /** All saved Views; columns borrow their heading colour from the View that filters on their value. */
-  views?: ViewFile[]
-  /** The board's own View, excluded from colour matching. */
+  /** All saved Views; each board column is one of them. */
+  views: ViewFile[]
+  /** The board's own View, which never serves as one of its own columns. */
   boardView?: ViewFile | null
   locale: AppLocale
   onUpdateFrontmatter: (path: string, key: string, value: FrontmatterValue) => Promise<unknown> | void
@@ -44,18 +43,24 @@ function findColumn(columns: BoardColumn[], path: string): BoardColumn | null {
   return columns.find((column) => column.cards.some((card) => card.entry.path === path)) ?? null
 }
 
+function movableColumnKeys(entry: VaultEntry | null, columns: BoardColumn[]): Set<string> {
+  if (!entry) return new Set()
+  const today = todayIso()
+  return new Set(columns.filter((target) => planBoardMove({ entry, columns, target, today })).map((target) => target.key))
+}
+
 function useBoardMove(props: BoardWorkspaceProps, columns: BoardColumn[]) {
-  const { presentation, onUpdateFrontmatter, onDeleteProperty } = props
+  const { onUpdateFrontmatter, onDeleteProperty } = props
   return useCallback(async (entry: VaultEntry, columnKey: string) => {
     const target = columns.find((column) => column.key === columnKey)
     if (!target) return
-    const plan = planBoardMove({ entry, groupBy: presentation.groupBy, columns, target, today: todayIso() })
+    const plan = planBoardMove({ entry, columns, target, today: todayIso() })
     if (!plan) return
     await applyBoardMovePlan(entry.path, plan, {
       updateProperty: (path, key, value) => onUpdateFrontmatter(path, key, value),
       deleteProperty: (path, key) => onDeleteProperty(path, key),
     })
-  }, [columns, onDeleteProperty, onUpdateFrontmatter, presentation.groupBy])
+  }, [columns, onDeleteProperty, onUpdateFrontmatter])
 }
 
 /** Full-width board plus the selected-note side panel for a board saved View (ADR-0301). */
@@ -63,21 +68,15 @@ export function BoardWorkspace(props: BoardWorkspaceProps) {
   const { presentation, viewSort, entries, allEntries, views, boardView, locale, onOpenInList } = props
   const [selectedPath, setSelectedPath] = useState<string | null>(null)
   const columns = useMemo(
-    () => buildBoardColumns(sortedByView(entries, viewSort), presentation),
-    [entries, presentation, viewSort],
+    () => buildBoardColumns(sortedByView(entries, viewSort), presentation, views, boardView),
+    [boardView, entries, presentation, viewSort, views],
   )
   const typeEntryMap = useMemo(() => buildTypeEntryMap(allEntries), [allEntries])
-  const columnColors = useMemo(() => columnColorsFromViews({
-    views: views ?? [],
-    groupBy: presentation.groupBy,
-    columns: columns.map((column) => ({ key: column.key, value: column.value })),
-    exclude: boardView,
-  }), [boardView, columns, presentation.groupBy, views])
   const move = useBoardMove(props, columns)
 
   const selectedColumn = selectedPath ? findColumn(columns, selectedPath) : null
   const selectedEntry = selectedPath ? entries.find((entry) => entry.path === selectedPath) ?? null : null
-  const selectedCard = selectedColumn?.cards.find((card) => card.entry.path === selectedPath)
+  const movableKeys = useMemo(() => movableColumnKeys(selectedEntry, columns), [columns, selectedEntry])
 
   return (
     <div className="flex h-full min-w-0 flex-1">
@@ -90,7 +89,6 @@ export function BoardWorkspace(props: BoardWorkspaceProps) {
           selectedPath={selectedPath}
           locale={locale}
           colors={presentation.colors}
-          columnColors={columnColors}
           onSelectCard={(entry) => setSelectedPath(entry.path)}
         />
       </div>
@@ -99,7 +97,7 @@ export function BoardWorkspace(props: BoardWorkspaceProps) {
           entry={selectedEntry}
           columns={columns}
           currentColumnKey={selectedColumn?.key ?? null}
-          movable={selectedCard?.draggable ?? true}
+          movableKeys={movableKeys}
           locale={locale}
           onMove={(columnKey) => { void move(selectedEntry, columnKey) }}
           onClose={() => setSelectedPath(null)}

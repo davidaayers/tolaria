@@ -1,168 +1,114 @@
-import type { VaultEntry, VaultPropertyValue } from '../types'
+import type { VaultEntry, ViewFile } from '../types'
 import { getSortComparator } from '../utils/noteListHelpers'
 import { parseSortConfig } from '../utils/noteSort'
 import { evaluateView } from '../utils/viewFilters'
-import type { BoardCollectionPresentationConfig, BoardColumnConfig } from './collectionTypes'
+import {
+  BOARD_CHIP_COLORS,
+  type BoardChipColor,
+  type BoardCollectionPresentationConfig,
+  type BoardColumnConfig,
+} from './collectionTypes'
 
 export const OTHER_COLUMN_KEY = '__other__'
 
 export interface BoardCard {
   entry: VaultEntry
-  /** False when the group-by value is a list or wikilink: the card cannot be moved by writing one scalar. */
-  draggable: boolean
 }
 
 export interface BoardColumn {
-  /** Normalized value, or `OTHER_COLUMN_KEY`. */
+  /** The referenced View's filename, or `OTHER_COLUMN_KEY`. */
   key: string
-  /** Value written to the group-by property when a card is moved here; null for Other. */
-  value: string | null
+  /** The View's name (the filename without extension when the View is missing). Other is labelled by the UI. */
   label: string
+  /** The View's `icon`: emoji, icon name or image URL. */
+  icon: string | null
+  /** The View's `color`, when it is a known accent. */
+  color: BoardChipColor | null
+  view: ViewFile | null
+  /** True when the column references a View that does not exist. */
+  missing: boolean
   isOther: boolean
   config: BoardColumnConfig | null
   cards: BoardCard[]
   visibleCards: BoardCard[]
   hiddenCount: number
-  /** Cards that matched this column's value but were rejected by its own `filter`. */
-  filteredOutCount: number
   limit: number | null
   overLimit: boolean
 }
 
-type GroupValue = { kind: 'scalar'; value: string | null } | { kind: 'unsupported' }
-
-type BuiltInReader = (entry: VaultEntry) => string | null
-
-const BUILT_IN_READERS = new Map<string, BuiltInReader>([
-  ['type', (entry) => entry.isA],
-  ['isa', (entry) => entry.isA],
-  ['status', (entry) => entry.status],
-  ['title', (entry) => entry.title],
-  ['filename', (entry) => entry.filename],
-])
-
-function normalize(value: string): string {
-  return value.trim().toLowerCase()
+function findView(views: ViewFile[], filename: string, boardView: ViewFile | null | undefined): ViewFile | null {
+  const candidates = views.filter((view) => view.filename === filename && view !== boardView && view.filename !== boardView?.filename)
+  const sameRoot = candidates.find((view) => (view.rootPath ?? '') === (boardView?.rootPath ?? ''))
+  return sameRoot ?? candidates[0] ?? null
 }
 
-function scalarGroupValue(raw: string | number | boolean | null | undefined): GroupValue {
-  if (raw === null || raw === undefined) return { kind: 'scalar', value: null }
-  const text = String(raw).trim()
-  return { kind: 'scalar', value: text.length > 0 ? text : null }
+function viewColor(view: ViewFile | null): BoardChipColor | null {
+  const color = view?.definition.color?.trim().toLowerCase() ?? ''
+  return (BOARD_CHIP_COLORS as readonly string[]).includes(color) ? (color as BoardChipColor) : null
 }
 
-function findKey(record: Record<string, unknown>, lower: string): string | undefined {
-  return Object.keys(record).find((key) => key.toLowerCase() === lower)
+function sortedBy(entries: VaultEntry[], sort: string | null | undefined): VaultEntry[] {
+  const config = parseSortConfig(sort)
+  if (!config) return entries
+  return [...entries].sort(getSortComparator(config.option, config.direction))
 }
 
-function propertyGroupValue(value: VaultPropertyValue): GroupValue {
-  return Array.isArray(value) ? { kind: 'unsupported' } : scalarGroupValue(value)
-}
+type ColumnIdentity = Pick<BoardColumn, 'key' | 'label' | 'icon' | 'color' | 'view' | 'missing' | 'isOther'>
 
-function readGroupValue(entry: VaultEntry, groupBy: string): GroupValue {
-  const lower = groupBy.toLowerCase()
-  const builtIn = BUILT_IN_READERS.get(lower)
-  if (builtIn) return scalarGroupValue(builtIn(entry))
-  if (findKey(entry.relationships, lower) !== undefined) return { kind: 'unsupported' }
-  const propertyKey = findKey(entry.properties, lower)
-  return propertyKey === undefined ? { kind: 'scalar', value: null } : propertyGroupValue(entry.properties[propertyKey])
-}
-
-function toCard(entry: VaultEntry, group: GroupValue): BoardCard {
-  return { entry, draggable: group.kind === 'scalar' }
-}
-
-function applyColumnFilter(cards: BoardCard[], config: BoardColumnConfig | null): BoardCard[] {
-  if (!config?.filter) return cards
-  const view = { name: '', icon: null, color: null, sort: null, filters: config.filter }
-  const kept = new Set(evaluateView(view, cards.map((card) => card.entry)))
-  return cards.filter((card) => kept.has(card.entry))
-}
-
-function applyColumnSort(cards: BoardCard[], config: BoardColumnConfig | null): BoardCard[] {
-  const sort = parseSortConfig(config?.sort)
-  if (!sort) return cards
-  const compare = getSortComparator(sort.option, sort.direction)
-  return [...cards].sort((left, right) => compare(left.entry, right.entry))
-}
-
-function finishColumn(
-  base: Pick<BoardColumn, 'key' | 'value' | 'label' | 'isOther'>,
-  config: BoardColumnConfig | null,
-  rawCards: BoardCard[],
-): BoardColumn {
-  const filtered = applyColumnFilter(rawCards, config)
-  const cards = applyColumnSort(filtered, config)
+function finishColumn(identity: ColumnIdentity, config: BoardColumnConfig | null, entries: VaultEntry[]): BoardColumn {
+  const cards = entries.map((entry) => ({ entry }))
   const max = config?.max ?? null
   const limit = config?.limit ?? null
   const visibleCards = max === null ? cards : cards.slice(0, max)
   return {
-    ...base,
+    ...identity,
     config,
     cards,
     visibleCards,
     hiddenCount: cards.length - visibleCards.length,
-    filteredOutCount: rawCards.length - filtered.length,
     limit,
     overLimit: limit !== null && cards.length > limit,
   }
 }
 
-interface Placement {
-  byKey: Map<string, BoardCard[]>
-  labels: Map<string, string>
-  other: BoardCard[]
+function fileLabel(filename: string): string {
+  return filename.replace(/\.ya?ml$/i, '')
 }
 
-function placeCards(entries: VaultEntry[], groupBy: string, declared: Set<string> | null): Placement {
-  const placement: Placement = { byKey: new Map(), labels: new Map(), other: [] }
-  for (const entry of entries) {
-    const group = readGroupValue(entry, groupBy)
-    const card = toCard(entry, group)
-    const value = group.kind === 'scalar' ? group.value : null
-    const key = value === null ? null : normalize(value)
-    if (key === null || (declared !== null && !declared.has(key))) {
-      placement.other.push(card)
-      continue
-    }
-    if (!placement.labels.has(key)) placement.labels.set(key, value as string)
-    placement.byKey.set(key, [...(placement.byKey.get(key) ?? []), card])
-  }
-  return placement
-}
-
-function declaredColumns(columns: BoardColumnConfig[], placement: Placement): BoardColumn[] {
-  return columns.map((config) => {
-    const key = normalize(config.value)
+function viewColumn(config: BoardColumnConfig, view: ViewFile | null, entries: VaultEntry[]): BoardColumn {
+  if (!view) {
     return finishColumn(
-      { key, value: config.value, label: config.label ?? config.value, isOther: false },
+      { key: config.view, label: fileLabel(config.view), icon: null, color: null, view: null, missing: true, isOther: false },
       config,
-      placement.byKey.get(key) ?? [],
+      [],
     )
-  })
+  }
+  const matching = sortedBy(evaluateView(view.definition, entries), view.definition.sort)
+  return finishColumn(
+    { key: config.view, label: view.definition.name, icon: view.definition.icon, color: viewColor(view), view, missing: false, isOther: false },
+    config,
+    matching,
+  )
 }
 
-function derivedColumns(placement: Placement): BoardColumn[] {
-  return [...placement.byKey.keys()]
-    .sort((left, right) => left.localeCompare(right))
-    .map((key) => {
-      const value = placement.labels.get(key) as string
-      return finishColumn({ key, value, label: value, isOther: false }, null, placement.byKey.get(key) ?? [])
-    })
+function otherColumn(entries: VaultEntry[], placed: Set<string>): BoardColumn[] {
+  const rest = entries.filter((entry) => !placed.has(entry.path))
+  if (rest.length === 0) return []
+  const identity = { key: OTHER_COLUMN_KEY, label: 'Other', icon: null, color: null, view: null, missing: false, isOther: true }
+  return [finishColumn(identity, null, rest)]
 }
 
-function otherColumn(placement: Placement): BoardColumn[] {
-  if (placement.other.length === 0) return []
-  return [finishColumn({ key: OTHER_COLUMN_KEY, value: null, label: 'Other', isOther: true }, null, placement.other)]
-}
-
-/** Group a View's filtered entries into board columns (ADR-0301). Pure: no I/O, no writes. */
+/**
+ * Turn a board View's filtered notes into columns (ADR-0301). Each column is a saved View: a note
+ * shows in every column whose View it matches, and in Other when it matches none. Pure: no I/O.
+ */
 export function buildBoardColumns(
   entries: VaultEntry[],
   config: BoardCollectionPresentationConfig,
+  views: ViewFile[],
+  boardView?: ViewFile | null,
 ): BoardColumn[] {
-  const declared = config.columns
-  const placement = placeCards(entries, config.groupBy, declared ? new Set(declared.map((c) => normalize(c.value))) : null)
-  const columns = declared ? declaredColumns(declared, placement) : derivedColumns(placement)
-  return [...columns, ...otherColumn(placement)]
+  const columns = config.columns.map((column) => viewColumn(column, findView(views, column.view, boardView), entries))
+  const placed = new Set(columns.flatMap((column) => column.cards.map((card) => card.entry.path)))
+  return [...columns, ...otherColumn(entries, placed)]
 }

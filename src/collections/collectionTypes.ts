@@ -15,27 +15,21 @@ export const BOARD_CHIP_COLORS = ['blue', 'green', 'orange', 'purple', 'teal', '
 export type BoardChipColor = typeof BOARD_CHIP_COLORS[number]
 
 export interface BoardColumnConfig {
-  /** Matched against the group-by property, case-insensitively after trimming. */
-  value: string
-  label: string | null
-  /** Emoji, icon name or image URL shown in the column heading (same values as a View's `icon`). */
-  icon: string | null
+  /** Filename of the saved View this column shows, for example `tasks-backlog.yml`. */
+  view: string
   /** Work-in-progress limit; warns, never blocks. */
   limit: number | null
   /** Cards shown before the "+N more" footer. */
   max: number | null
-  sort: string | null
-  filter: FilterGroup | null
   /** Property stamped with today's date when a card enters the column. */
   stamp: string | null
 }
 
 export interface BoardCollectionPresentationConfig {
   type: typeof COLLECTION_PRESENTATION_BOARD
-  groupBy: string
   properties: string[]
-  /** `null` derives one column per distinct value present. */
-  columns: BoardColumnConfig[] | null
+  /** One column per referenced saved View; name, icon, colour, sort and filter come from that View. */
+  columns: BoardColumnConfig[]
   staleAfterDays: number | null
   staleFrom: string | null
   /** Chip colour per property value (lowercase key); values without an entry get an automatic colour. */

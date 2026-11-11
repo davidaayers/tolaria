@@ -1,174 +1,114 @@
 import { describe, expect, it } from 'vitest'
-import type { VaultEntry } from '../types'
+import { makeEntry } from '../test-utils/noteListTestUtils'
+import type { FilterGroup, VaultEntry, ViewFile } from '../types'
 import { buildBoardColumns, OTHER_COLUMN_KEY } from './boardColumns'
 import type { BoardCollectionPresentationConfig, BoardColumnConfig } from './collectionTypes'
 
-function entry(title: string, overrides: Partial<VaultEntry> = {}): VaultEntry {
-  return {
-    path: `/vault/${title}.md`, filename: `${title}.md`, title, isA: null,
-    aliases: [], belongsTo: [], relatedTo: [], status: null,
-    archived: false,
-    modifiedAt: 0, createdAt: 0, fileSize: 100, snippet: '',
-    wordCount: 0, relationships: {}, icon: null, color: null,
-    order: null, sidebarLabel: null, template: null, sort: null, view: null,
-    visible: null, favorite: false, favoriteIndex: null,
-    outgoingLinks: [], properties: {}, listPropertiesDisplay: [],
-    ...overrides,
-  } as VaultEntry
+function savedView(filename: string, filters: FilterGroup, extra: Partial<ViewFile['definition']> = {}, rootPath?: string): ViewFile {
+  return { filename, rootPath, definition: { name: filename.replace('.yml', ''), icon: null, color: null, sort: null, filters, ...extra } }
 }
 
-function column(value: string, overrides: Partial<BoardColumnConfig> = {}): BoardColumnConfig {
-  return { value, label: null, icon: null, limit: null, max: null, sort: null, filter: null, stamp: null, ...overrides }
+const stageIs = (value: string): FilterGroup => ({ all: [{ field: 'Stage', op: 'equals', value }] })
+
+function col(view: string, overrides: Partial<BoardColumnConfig> = {}): BoardColumnConfig {
+  return { view, limit: null, max: null, stamp: null, ...overrides }
 }
 
-function board(
-  columns: BoardColumnConfig[] | null,
-  overrides: Partial<BoardCollectionPresentationConfig> = {},
-): BoardCollectionPresentationConfig {
-  return { type: 'board', groupBy: 'Stage', properties: [], columns, staleAfterDays: null, staleFrom: null, colors: {}, ...overrides }
+function board(columns: BoardColumnConfig[]): BoardCollectionPresentationConfig {
+  return { type: 'board', properties: [], columns, staleAfterDays: null, staleFrom: null, colors: {} }
 }
 
-const withStatus = (title: string, status: unknown, extra: Partial<VaultEntry> = {}) =>
-  entry(title, { properties: { Stage: status as never }, ...extra })
+const note = (title: string, stage?: string, extra: Partial<VaultEntry> = {}) =>
+  makeEntry({ path: `/v/${title}.md`, title, properties: stage === undefined ? {} : { Stage: stage }, ...extra })
 
-function titles(result: ReturnType<typeof buildBoardColumns>, key: string): string[] {
-  return result.find((c) => c.key === key)?.cards.map((card) => card.entry.title) ?? []
-}
+const VIEWS = [
+  savedView('todo.yml', stageIs('todo'), { name: 'To do', icon: 'tray', color: 'gray' }),
+  savedView('done.yml', stageIs('done'), { name: 'Done', icon: '✅', color: 'green' }),
+]
+
+const titles = (columns: ReturnType<typeof buildBoardColumns>, key: string) =>
+  columns.find((c) => c.key === key)?.cards.map((card) => card.entry.title) ?? []
 
 describe('buildBoardColumns', () => {
-  it('places notes in declared columns in declared order, matching case-insensitively after trimming', () => {
-    const result = buildBoardColumns(
-      [withStatus('a', 'Todo'), withStatus('b', ' DONE '), withStatus('c', 'todo')],
-      board([column('todo'), column('done')]),
-    )
-    expect(result.map((c) => c.key)).toEqual(['todo', 'done'])
-    expect(titles(result, 'todo')).toEqual(['a', 'c'])
-    expect(titles(result, 'done')).toEqual(['b'])
+  it('builds one column per referenced view, in order, taking name, icon and colour from the view', () => {
+    const result = buildBoardColumns([note('a', 'todo'), note('b', 'done')], board([col('done.yml'), col('todo.yml')]), VIEWS)
+    expect(result.map((c) => c.key)).toEqual(['done.yml', 'todo.yml'])
+    expect(result[0]).toMatchObject({ label: 'Done', icon: '✅', color: 'green', missing: false, isOther: false })
+    expect(result[1]).toMatchObject({ label: 'To do', icon: 'tray', color: 'gray' })
+    expect(titles(result, 'todo.yml')).toEqual(['a'])
+    expect(titles(result, 'done.yml')).toEqual(['b'])
   })
 
-  it('keeps declared columns even when empty and uses the label, falling back to the value', () => {
-    const result = buildBoardColumns([], board([column('todo', { label: 'To do' }), column('done')]))
-    expect(result.map((c) => c.label)).toEqual(['To do', 'done'])
-    expect(result.every((c) => c.cards.length === 0)).toBe(true)
+  it('ignores an invalid view colour', () => {
+    const views = [savedView('todo.yml', stageIs('todo'), { color: 'chartreuse' })]
+    expect(buildBoardColumns([], board([col('todo.yml')]), views)[0].color).toBeNull()
   })
 
-  it('derives one alphabetical column per distinct value when none are declared', () => {
-    const result = buildBoardColumns(
-      [withStatus('a', 'Waiting'), withStatus('b', 'backlog'), withStatus('c', 'waiting'), withStatus('d', 'Done')],
-      board(null),
-    )
-    expect(result.map((c) => c.key)).toEqual(['backlog', 'done', 'waiting'])
-    expect(result.map((c) => c.label)).toEqual(['backlog', 'Done', 'Waiting'])
-    expect(titles(result, 'waiting')).toEqual(['a', 'c'])
+  it('keeps empty columns', () => {
+    const result = buildBoardColumns([], board([col('todo.yml')]), VIEWS)
+    expect(result[0].cards).toEqual([])
   })
 
-  it('collects unmatched, empty and unsupported values in Other, shown only when non-empty', () => {
-    const none = buildBoardColumns([withStatus('a', 'todo')], board([column('todo')]))
-    expect(none.map((c) => c.key)).toEqual(['todo'])
+  it('puts notes that match no column in Other, shown only when non-empty', () => {
+    const none = buildBoardColumns([note('a', 'todo')], board([col('todo.yml')]), VIEWS)
+    expect(none.map((c) => c.key)).toEqual(['todo.yml'])
 
-    const result = buildBoardColumns(
-      [withStatus('a', 'todo'), withStatus('b', 'mystery'), entry('c'), withStatus('d', ''), withStatus('e', ['x', 'y'])],
-      board([column('todo')]),
-    )
-    expect(result.map((c) => c.key)).toEqual(['todo', OTHER_COLUMN_KEY])
-    expect(titles(result, OTHER_COLUMN_KEY)).toEqual(['b', 'c', 'd', 'e'])
-    expect(result[1]).toMatchObject({ isOther: true, value: null })
+    const result = buildBoardColumns([note('a', 'todo'), note('b', 'mystery'), note('c')], board([col('todo.yml')]), VIEWS)
+    expect(result.map((c) => c.key)).toEqual(['todo.yml', OTHER_COLUMN_KEY])
+    expect(titles(result, OTHER_COLUMN_KEY)).toEqual(['b', 'c'])
+    expect(result[1]).toMatchObject({ isOther: true, view: null })
   })
 
-  it('marks notes with list or wikilink values as not draggable, and scalar or empty values as draggable', () => {
-    const result = buildBoardColumns(
-      [
-        withStatus('scalar', 'todo'),
-        entry('empty'),
-        withStatus('list', ['x']),
-        entry('link', { relationships: { Stage: ['[[todo]]'] } }),
-      ],
-      board([column('todo')]),
-    )
-    const draggable = Object.fromEntries(result.flatMap((c) => c.cards).map((card) => [card.entry.title, card.draggable]))
-    expect(draggable).toEqual({ scalar: true, empty: true, list: false, link: false })
-    expect(titles(result, OTHER_COLUMN_KEY)).toContain('link')
-  })
-
-  it('reads built-in fields and treats numbers and booleans as scalar values', () => {
-    const builtIn = buildBoardColumns(
-      [entry('a', { status: 'Active' }), entry('b', { status: 'Paused' })],
-      board([column('active'), column('paused')], { groupBy: 'status' }),
-    )
-    expect(titles(builtIn, 'active')).toEqual(['a'])
-
-    const typed = buildBoardColumns(
-      [entry('a', { properties: { Priority: 2 } }), entry('b', { properties: { Priority: true } })],
-      board([column('2'), column('true')], { groupBy: 'priority' }),
-    )
-    expect(titles(typed, '2')).toEqual(['a'])
-    expect(titles(typed, 'true')).toEqual(['b'])
-  })
-
-  it('preserves incoming order unless the column declares a sort', () => {
-    const entries = [
-      withStatus('c', 'todo', { properties: { Stage: 'todo', due: '2026-03-01' } }),
-      withStatus('a', 'todo', { properties: { Stage: 'todo', due: '2026-01-01' } }),
-      withStatus('b', 'todo', { properties: { Stage: 'todo', due: '2026-02-01' } }),
+  it('shows a note in every column whose view it matches', () => {
+    const views = [
+      savedView('todo.yml', stageIs('todo')),
+      savedView('tagged.yml', { all: [{ field: 'area', op: 'equals', value: 'ops' }] }),
     ]
-    expect(titles(buildBoardColumns(entries, board([column('todo')])), 'todo')).toEqual(['c', 'a', 'b'])
-    expect(titles(buildBoardColumns(entries, board([column('todo', { sort: 'property:due:asc' })])), 'todo'))
-      .toEqual(['a', 'b', 'c'])
-    expect(titles(buildBoardColumns(entries, board([column('todo', { sort: 'garbage' })])), 'todo'))
-      .toEqual(['c', 'a', 'b'])
-  })
-
-  it('applies a column filter only to that column and hides cards it rejects', () => {
-    const filter = { all: [{ field: 'completed', op: 'after' as const, value: '2026-02-01' }] }
-    const result = buildBoardColumns(
-      [
-        withStatus('old', 'done', { properties: { Stage: 'done', completed: '2026-01-10' } }),
-        withStatus('new', 'done', { properties: { Stage: 'done', completed: '2026-02-10' } }),
-        withStatus('open', 'todo', { properties: { Stage: 'todo', completed: '2026-01-10' } }),
-      ],
-      board([column('todo'), column('done', { filter })]),
-    )
-    expect(titles(result, 'done')).toEqual(['new'])
-    expect(titles(result, 'todo')).toEqual(['open'])
+    const entry = makeEntry({ path: '/v/a.md', title: 'a', properties: { Stage: 'todo', area: 'ops' } })
+    const result = buildBoardColumns([entry], board([col('todo.yml'), col('tagged.yml')]), views)
+    expect(titles(result, 'todo.yml')).toEqual(['a'])
+    expect(titles(result, 'tagged.yml')).toEqual(['a'])
     expect(result.some((c) => c.isOther)).toBe(false)
   })
 
-  it('counts the cards a column filter hides, so the board can say so', () => {
-    const filter = { all: [{ field: 'completed', op: 'after' as const, value: '2026-02-01' }] }
-    const result = buildBoardColumns(
-      [
-        withStatus('old', 'done', { properties: { Stage: 'done', completed: '2026-01-10' } }),
-        withStatus('undated', 'done'),
-        withStatus('new', 'done', { properties: { Stage: 'done', completed: '2026-02-10' } }),
-        withStatus('open', 'todo'),
-      ],
-      board([column('todo'), column('done', { filter })]),
-    )
-    expect(result.map((c) => c.filteredOutCount)).toEqual([0, 2])
-    expect(result[1].cards).toHaveLength(1)
+  it('marks a column missing when its view does not exist, and keeps it in place', () => {
+    const result = buildBoardColumns([note('a', 'todo')], board([col('gone.yml'), col('todo.yml')]), VIEWS)
+    expect(result[0]).toMatchObject({ key: 'gone.yml', missing: true, label: 'gone', view: null, cards: [] })
+    expect(titles(result, 'todo.yml')).toEqual(['a'])
+  })
+
+  it('never uses the board view as its own column, and prefers a view from the board vault', () => {
+    const boardView = savedView('board.yml', { all: [] })
+    const own = savedView('todo.yml', stageIs('todo'), { name: 'Own' }, '/vault-a')
+    const foreign = savedView('todo.yml', stageIs('todo'), { name: 'Foreign' }, '/vault-b')
+    const sameName = buildBoardColumns([], board([col('board.yml')]), [boardView], boardView)
+    expect(sameName[0].missing).toBe(true)
+    const picked = buildBoardColumns([], board([col('todo.yml')]), [foreign, own], { ...boardView, rootPath: '/vault-a' })
+    expect(picked[0].label).toBe('Own')
+  })
+
+  it("orders a column by its view's sort, and otherwise keeps the incoming order", () => {
+    const entries = ['c', 'a', 'b'].map((t) => note(t, 'todo'))
+    const sorted = [savedView('todo.yml', stageIs('todo'), { sort: 'title:asc' })]
+    expect(titles(buildBoardColumns(entries, board([col('todo.yml')]), sorted), 'todo.yml')).toEqual(['a', 'b', 'c'])
+    expect(titles(buildBoardColumns(entries, board([col('todo.yml')]), VIEWS), 'todo.yml')).toEqual(['c', 'a', 'b'])
   })
 
   it('caps visible cards at max and reports how many are hidden', () => {
-    const entries = ['a', 'b', 'c', 'd'].map((t) => withStatus(t, 'todo'))
-    const [todo] = buildBoardColumns(entries, board([column('todo', { max: 3 })]))
+    const entries = ['a', 'b', 'c', 'd'].map((t) => note(t, 'todo'))
+    const [todo] = buildBoardColumns(entries, board([col('todo.yml', { max: 3 })]), VIEWS)
     expect(todo.cards).toHaveLength(4)
     expect(todo.visibleCards.map((c) => c.entry.title)).toEqual(['a', 'b', 'c'])
     expect(todo.hiddenCount).toBe(1)
-
-    const [uncapped] = buildBoardColumns(entries, board([column('todo')]))
+    const [uncapped] = buildBoardColumns(entries, board([col('todo.yml')]), VIEWS)
+    expect(uncapped).toMatchObject({ hiddenCount: 0 })
     expect(uncapped.visibleCards).toHaveLength(4)
-    expect(uncapped.hiddenCount).toBe(0)
   })
 
-  it('flags a column as over its work-in-progress limit only when the count exceeds it', () => {
-    const entries = ['a', 'b', 'c'].map((t) => withStatus(t, 'todo'))
-    expect(buildBoardColumns(entries, board([column('todo', { limit: 2 })]))[0])
-      .toMatchObject({ limit: 2, overLimit: true })
-    expect(buildBoardColumns(entries, board([column('todo', { limit: 3 })]))[0].overLimit).toBe(false)
-    expect(buildBoardColumns(entries, board([column('todo')]))[0]).toMatchObject({ limit: null, overLimit: false })
-  })
-
-  it('returns no columns for an empty derived board', () => {
-    expect(buildBoardColumns([], board(null))).toEqual([])
+  it('flags a column over its work-in-progress limit only when the count exceeds it', () => {
+    const entries = ['a', 'b', 'c'].map((t) => note(t, 'todo'))
+    expect(buildBoardColumns(entries, board([col('todo.yml', { limit: 2 })]), VIEWS)[0]).toMatchObject({ limit: 2, overLimit: true })
+    expect(buildBoardColumns(entries, board([col('todo.yml', { limit: 3 })]), VIEWS)[0].overLimit).toBe(false)
+    expect(buildBoardColumns(entries, board([col('todo.yml')]), VIEWS)[0]).toMatchObject({ limit: null, overLimit: false })
   })
 })

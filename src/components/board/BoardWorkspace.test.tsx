@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import type { BoardCollectionPresentationConfig, BoardColumnConfig } from '../../collections/collectionTypes'
 import { makeEntry } from '../../test-utils/noteListTestUtils'
-import type { VaultEntry } from '../../types'
+import type { FilterGroup, VaultEntry, ViewFile } from '../../types'
 import { BoardWorkspace } from './BoardWorkspace'
 
 beforeAll(() => {
@@ -14,18 +14,23 @@ beforeAll(() => {
   })
 })
 
-function column(value: string, overrides: Partial<BoardColumnConfig> = {}): BoardColumnConfig {
-  return { value, label: null, icon: null, limit: null, max: null, sort: null, filter: null, stamp: null, ...overrides }
+function savedView(filename: string, filters: FilterGroup, extra: Partial<ViewFile['definition']> = {}): ViewFile {
+  return { filename, definition: { name: filename.replace('.yml', ''), icon: null, color: null, sort: null, filters, ...extra } }
 }
 
+const stageIs = (value: string): FilterGroup => ({ all: [{ field: 'Stage', op: 'equals', value }] })
+const col = (view: string, overrides: Partial<BoardColumnConfig> = {}): BoardColumnConfig => ({ view, limit: null, max: null, stamp: null, ...overrides })
+
 const presentation = (columns: BoardColumnConfig[]): BoardCollectionPresentationConfig => ({
-  type: 'board', groupBy: 'Stage', properties: [], columns, staleAfterDays: null, staleFrom: null, colors: {},
+  type: 'board', properties: [], columns, staleAfterDays: null, staleFrom: null, colors: {},
 })
 
-const note = (title: string, properties: VaultEntry['properties'], snippet = '') =>
-  makeEntry({ path: `/vault/${title}.md`, title, properties, snippet })
+const note = (title: string, properties: VaultEntry['properties'], extra: Partial<VaultEntry> = {}) =>
+  makeEntry({ path: `/vault/${title}.md`, title, properties, ...extra })
 
-function renderWorkspace(entries: VaultEntry[], columns: BoardColumnConfig[], viewSort: string | null = null) {
+const VIEWS = [savedView('todo.yml', stageIs('todo')), savedView('done.yml', stageIs('done'))]
+
+function renderWorkspace(entries: VaultEntry[], columns: BoardColumnConfig[], options: { viewSort?: string | null; views?: ViewFile[] } = {}) {
   const props = {
     onUpdateFrontmatter: vi.fn().mockResolvedValue(undefined),
     onDeleteProperty: vi.fn().mockResolvedValue(undefined),
@@ -34,9 +39,10 @@ function renderWorkspace(entries: VaultEntry[], columns: BoardColumnConfig[], vi
   render(
     <BoardWorkspace
       presentation={presentation(columns)}
-      viewSort={viewSort}
+      viewSort={options.viewSort ?? null}
       entries={entries}
       allEntries={entries}
+      views={options.views ?? VIEWS}
       locale="en"
       {...props}
     />,
@@ -45,8 +51,8 @@ function renderWorkspace(entries: VaultEntry[], columns: BoardColumnConfig[], vi
 }
 
 describe('BoardWorkspace', () => {
-  const entries = [note('Alpha', { Stage: 'todo', Area: 'Home' }, 'First note body'), note('Beta', { Stage: 'done' })]
-  const columns = [column('todo'), column('done', { stamp: 'completed' })]
+  const entries = [note('Alpha', { Stage: 'todo', Area: 'Home' }, { snippet: 'First note body' }), note('Beta', { Stage: 'done' })]
+  const columns = [col('todo.yml'), col('done.yml', { stamp: 'completed' })]
 
   it('shows the board without a side panel until a card is selected', () => {
     renderWorkspace(entries, columns)
@@ -72,7 +78,7 @@ describe('BoardWorkspace', () => {
     expect(onOpenInList).toHaveBeenCalledWith(expect.objectContaining({ path: '/vault/Alpha.md' }))
   })
 
-  it('moves a note to another column from the panel, stamping and clearing in order', async () => {
+  it('moves a note by writing what the target View requires, stamping in order', async () => {
     const { onUpdateFrontmatter, onDeleteProperty } = renderWorkspace(entries, columns)
     fireEvent.click(screen.getByRole('button', { name: /Alpha/ }))
     fireEvent.click(screen.getByRole('combobox', { name: 'Move to column' }))
@@ -83,39 +89,26 @@ describe('BoardWorkspace', () => {
     expect(onDeleteProperty).not.toHaveBeenCalled()
   })
 
-  it('locks the control for a note whose group-by value is a list', () => {
-    renderWorkspace([note('Listy', { Stage: ['a', 'b'] })], columns)
-    fireEvent.click(screen.getByRole('button', { name: /Listy/ }))
-    expect(screen.getByRole('combobox', { name: 'Move to column' })).toBeDisabled()
-    expect(screen.getByText("This note's value can't be changed from the board")).toBeInTheDocument()
+  it('offers only the columns the note can be moved into', async () => {
+    const views = [...VIEWS, savedView('hard.yml', { any: [{ field: 'Stage', op: 'equals', value: 'x' }] })]
+    renderWorkspace(entries, [...columns, col('hard.yml')], { views })
+    fireEvent.click(screen.getByRole('button', { name: /Alpha/ }))
+    fireEvent.click(screen.getByRole('combobox', { name: 'Move to column' }))
+    expect(await screen.findByRole('option', { name: 'done' })).not.toHaveAttribute('aria-disabled', 'true')
+    expect(screen.getByRole('option', { name: 'hard' })).toHaveAttribute('aria-disabled', 'true')
   })
 
-  it('applies the view sort to cards when no column sort is set', () => {
-    const sorted = [note('b', { Stage: 'todo' }), note('a', { Stage: 'todo' })]
-    renderWorkspace(sorted, [column('todo')], 'title:asc')
+  it('locks the control when no column can receive the note', () => {
+    const views = [savedView('hard.yml', { any: [{ field: 'Stage', op: 'equals', value: 'x' }] })]
+    renderWorkspace([note('Solo', { Stage: 'x' })], [col('hard.yml')], { views })
+    fireEvent.click(screen.getByRole('button', { name: /Solo/ }))
+    expect(screen.getByRole('combobox', { name: 'Move to column' })).toBeDisabled()
+    expect(screen.getByText("This note can't be moved from the board")).toBeInTheDocument()
+  })
+
+  it('orders cards by the board View sort when the column View has none', () => {
+    renderWorkspace([note('b', { Stage: 'todo' }), note('a', { Stage: 'todo' })], [col('todo.yml')], { viewSort: 'title:asc' })
     const cards = within(screen.getByRole('region', { name: 'todo' })).getAllByRole('button').map((b) => b.textContent)
     expect(cards).toEqual(['a', 'b'])
-  })
-})
-
-describe('BoardWorkspace column colours', () => {
-  it('tints a column heading with the colour of the saved View that filters on its value', () => {
-    const boardView = { filename: 'board.yml', definition: { name: 'Board', icon: null, color: 'red', sort: null, filters: { all: [] } } }
-    const doingView = { filename: 'doing.yml', definition: { name: 'Doing', icon: null, color: 'orange', sort: null, filters: { all: [{ field: 'Stage', op: 'equals' as const, value: 'todo' }] } } }
-    render(
-      <BoardWorkspace
-        presentation={presentation([column('todo')])}
-        viewSort={null}
-        entries={[]}
-        allEntries={[]}
-        views={[boardView, doingView]}
-        boardView={boardView}
-        locale="en"
-        onUpdateFrontmatter={vi.fn()}
-        onDeleteProperty={vi.fn()}
-        onOpenInList={vi.fn()}
-      />,
-    )
-    expect(screen.getByTestId('board-column-dot-todo').getAttribute('style')).toContain('--accent-orange')
   })
 })
