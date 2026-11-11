@@ -4,6 +4,10 @@ import type { VaultEntry, VaultPropertyValue } from '../../types'
 const DUE_PROPERTY_PATTERN = /^(due|deadline)\b|\b(due|deadline)$/i
 const ISO_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})/
 const SOON_DAYS = 3
+const OVERDUE_DAYS_LIMIT = 30
+const OVERDUE_WEEKS_LIMIT = 90
+const DAYS_PER_WEEK = 7
+const DAYS_PER_MONTH = 30
 const MS_PER_DAY = 86_400_000
 
 export const BOARD_ACCENTS = ['blue', 'green', 'orange', 'purple', 'teal', 'pink', 'yellow'] as const
@@ -12,8 +16,8 @@ export type BoardAccent = typeof BOARD_ACCENTS[number]
 export interface DueUrgency {
   tone: 'overdue' | 'soon' | 'later'
   /** Translation key for overdue/soon labels; null means show the formatted date. */
-  key: Extract<TranslationKey, 'board.due.overdue' | 'board.due.today' | 'board.due.tomorrow' | 'board.due.inDays'> | null
-  /** Whole days: overdue by, or until due. */
+  key: Extract<TranslationKey, 'board.due.overdue' | 'board.due.overdueWeeks' | 'board.due.overdueMonths' | 'board.due.today' | 'board.due.tomorrow' | 'board.due.inDays'> | null
+  /** Overdue by or until due, in the unit the key names (days unless the key says weeks or months). */
   count: number
 }
 
@@ -39,12 +43,20 @@ function soonKey(days: number): NonNullable<DueUrgency['key']> {
   return days === 1 ? 'board.due.tomorrow' : 'board.due.inDays'
 }
 
+function overdueUrgency(daysLate: number): DueUrgency {
+  if (daysLate <= OVERDUE_DAYS_LIMIT) return { tone: 'overdue', key: 'board.due.overdue', count: daysLate }
+  if (daysLate < OVERDUE_WEEKS_LIMIT) {
+    return { tone: 'overdue', key: 'board.due.overdueWeeks', count: Math.floor(daysLate / DAYS_PER_WEEK) }
+  }
+  return { tone: 'overdue', key: 'board.due.overdueMonths', count: Math.floor(daysLate / DAYS_PER_MONTH) }
+}
+
 /** Classify an ISO due date against the local calendar day. Null when the value is not a date. */
 export function dueUrgency(value: string, now: Date = new Date()): DueUrgency | null {
   const due = parseIsoDay(value)
   if (due === null) return null
   const days = due - localDayNumber(now.getFullYear(), now.getMonth(), now.getDate())
-  if (days < 0) return { tone: 'overdue', key: 'board.due.overdue', count: -days }
+  if (days < 0) return overdueUrgency(-days)
   if (days <= SOON_DAYS) return { tone: 'soon', key: soonKey(days), count: days }
   return { tone: 'later', key: null, count: days }
 }

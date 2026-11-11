@@ -616,6 +616,8 @@
   "board.column.showFewer": "Show fewer",
   "board.column.filteredOut": "{count} hidden by filter",
   "board.due.overdue": "{count}d overdue",
+  "board.due.overdueWeeks": "{count}w overdue",
+  "board.due.overdueMonths": "{count}mo overdue",
   "board.due.today": "Due today",
   "board.due.tomorrow": "Due tomorrow",
   "board.due.inDays": "Due in {count}d",

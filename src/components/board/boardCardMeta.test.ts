@@ -8,6 +8,11 @@ describe('dueUrgency', () => {
   it.each([
     ['2026-11-07', { tone: 'overdue', key: 'board.due.overdue', count: 3 }],
     ['2026-11-09', { tone: 'overdue', key: 'board.due.overdue', count: 1 }],
+    ['2026-10-11', { tone: 'overdue', key: 'board.due.overdue', count: 30 }],
+    ['2026-10-10', { tone: 'overdue', key: 'board.due.overdueWeeks', count: 4 }],
+    ['2026-08-13', { tone: 'overdue', key: 'board.due.overdueWeeks', count: 12 }],
+    ['2026-08-12', { tone: 'overdue', key: 'board.due.overdueMonths', count: 3 }],
+    ['2026-05-31', { tone: 'overdue', key: 'board.due.overdueMonths', count: 5 }],
     ['2026-11-10', { tone: 'soon', key: 'board.due.today', count: 0 }],
     ['2026-11-11', { tone: 'soon', key: 'board.due.tomorrow', count: 1 }],
     ['2026-11-13', { tone: 'soon', key: 'board.due.inDays', count: 3 }],
