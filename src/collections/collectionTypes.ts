@@ -18,6 +18,8 @@ export interface BoardColumnConfig {
   /** Matched against the group-by property, case-insensitively after trimming. */
   value: string
   label: string | null
+  /** Emoji, icon name or image URL shown in the column heading (same values as a View's `icon`). */
+  icon: string | null
   /** Work-in-progress limit; warns, never blocks. */
   limit: number | null
   /** Cards shown before the "+N more" footer. */

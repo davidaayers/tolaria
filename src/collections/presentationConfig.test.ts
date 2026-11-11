@@ -30,7 +30,7 @@ describe('presentationFromViewDefinition', () => {
       staleFrom: 'added',
       colors: { Team: 'purple', ops: 'green', odd: 'chartreuse', bad: 3 },
       columns: [
-        { value: 'backlog', label: 'Backlog', max: 5 },
+        { value: 'backlog', label: 'Backlog', icon: 'tray', max: 5 },
         { value: 'in-progress', limit: 3, sort: 'property:due:asc' },
         { value: 'done', label: 'Done this week', stamp: 'completed', filter },
       ],
@@ -43,10 +43,21 @@ describe('presentationFromViewDefinition', () => {
       staleFrom: 'added',
       colors: { team: 'purple', ops: 'green' },
       columns: [
-        { value: 'backlog', label: 'Backlog', limit: null, max: 5, sort: null, filter: null, stamp: null },
-        { value: 'in-progress', label: null, limit: 3, max: null, sort: 'property:due:asc', filter: null, stamp: null },
-        { value: 'done', label: 'Done this week', limit: null, max: null, sort: null, filter, stamp: 'completed' },
+        { value: 'backlog', label: 'Backlog', icon: 'tray', limit: null, max: 5, sort: null, filter: null, stamp: null },
+        { value: 'in-progress', label: null, icon: null, limit: 3, max: null, sort: 'property:due:asc', filter: null, stamp: null },
+        { value: 'done', label: 'Done this week', icon: null, limit: null, max: null, sort: null, filter, stamp: 'completed' },
       ],
+    })
+  })
+
+  it('keeps an emoji or icon-name column icon and ignores blank or non-string ones', () => {
+    const result = presentationFromViewDefinition(view({
+      type: 'board',
+      groupBy: 'status',
+      columns: [{ value: 'a', icon: '🔥' }, { value: 'b', icon: ' hammer ' }, { value: 'c', icon: '  ' }, { value: 'd', icon: 4 }],
+    }))
+    expect(result).toMatchObject({
+      columns: [{ icon: '🔥' }, { icon: 'hammer' }, { icon: null }, { icon: null }],
     })
   })
 

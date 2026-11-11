@@ -40,6 +40,7 @@ function boardColumn(value: unknown): BoardColumnConfig | null {
   return {
     value: columnValue,
     label: nullableString(value.label),
+    icon: nullableString(value.icon)?.trim() ?? null,
     limit: positiveInteger(value.limit),
     max: positiveInteger(value.max),
     sort: nullableString(value.sort),

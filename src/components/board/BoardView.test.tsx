@@ -7,7 +7,7 @@ import type { VaultEntry } from '../../types'
 import { BoardView } from './BoardView'
 
 function column(value: string, overrides: Partial<BoardColumnConfig> = {}): BoardColumnConfig {
-  return { value, label: null, limit: null, max: null, sort: null, filter: null, stamp: null, ...overrides }
+  return { value, label: null, icon: null, limit: null, max: null, sort: null, filter: null, stamp: null, ...overrides }
 }
 
 function config(columns: BoardColumnConfig[] | null): BoardCollectionPresentationConfig {
@@ -166,5 +166,14 @@ describe('BoardView', () => {
     renderBoard(entries, [column('todo')], { properties: ['area'], colors: { ops: 'pink' } })
     expect(screen.getByText('Ops').getAttribute('style')).toContain('--accent-pink')
     expect(screen.getByText('jc').getAttribute('style')).not.toContain('--accent-pink')
+  })
+
+  it('shows an emoji or named icon in the column heading, and a coloured dot when there is none', () => {
+    renderBoard([], [column('a', { icon: '🔥' }), column('b', { icon: 'hammer' }), column('c', { icon: 'not-a-real-icon' }), column('d')])
+    expect(screen.getByTestId('board-column-icon-a')).toHaveTextContent('🔥')
+    expect(screen.getByTestId('board-column-icon-b').querySelector('svg')).not.toBeNull()
+    expect(screen.getByTestId('board-column-dot-c')).toBeInTheDocument()
+    expect(screen.getByTestId('board-column-dot-d')).toBeInTheDocument()
+    expect(screen.queryByTestId('board-column-dot-a')).not.toBeInTheDocument()
   })
 })

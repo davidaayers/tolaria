@@ -4,6 +4,7 @@ import type { BoardCard, BoardColumn } from '../../collections/boardColumns'
 import { translate, type AppLocale } from '../../lib/i18n'
 import type { VaultEntry } from '../../types'
 import { Button } from '@/components/ui/button'
+import { resolveNoteIcon } from '../../utils/noteIcon'
 import { BOARD_ACCENTS, dominantChipValues } from './boardCardMeta'
 import { BoardCardChips } from './BoardCardChips'
 
@@ -77,13 +78,31 @@ function columnAccentStyle(column: BoardColumn, index: number): CSSProperties {
   return { backgroundColor: `var(--accent-${BOARD_ACCENTS[index % BOARD_ACCENTS.length]})` }
 }
 
+function ColumnIcon({ column, index }: { column: BoardColumn; index: number }) {
+  const icon = resolveNoteIcon(column.config?.icon)
+  if (icon.kind === 'emoji') {
+    return <span aria-hidden="true" data-testid={`board-column-icon-${column.key}`} className="shrink-0 text-sm leading-none">{icon.value}</span>
+  }
+  if (icon.kind === 'phosphor') {
+    return (
+      <span aria-hidden="true" data-testid={`board-column-icon-${column.key}`} className="shrink-0 text-muted-foreground">
+        <icon.Icon width={14} height={14} />
+      </span>
+    )
+  }
+  if (icon.kind === 'image') {
+    return <img src={icon.src} alt="" aria-hidden="true" data-testid={`board-column-icon-${column.key}`} className="size-3.5 shrink-0 rounded-sm object-cover" />
+  }
+  return <span aria-hidden="true" data-testid={`board-column-dot-${column.key}`} className="size-2 shrink-0 rounded-full" style={columnAccentStyle(column, index)} />
+}
+
 function ColumnHeader({ column, label, index, t }: { column: BoardColumn; label: string; index: number; t: Translate }) {
   const countClassName = column.overLimit
     ? 'bg-[var(--accent-red-light)] text-[var(--accent-red)]'
     : 'bg-muted text-muted-foreground'
   return (
     <header className="flex items-center justify-between gap-2 px-1">
-      <span aria-hidden="true" className="size-2 shrink-0 rounded-full" style={columnAccentStyle(column, index)} />
+      <ColumnIcon column={column} index={index} />
       <h3 className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{label}</h3>
       <span
         className={`rounded-full px-2 py-0.5 text-xs font-medium ${countClassName}`}

@@ -45,6 +45,7 @@ presentation:
 - **`groupBy`**: the property whose value places a card. Only scalar properties are supported; a note with a list value or a wikilink value is not draggable and goes to Other.
 - **`columns`**: ordered. `value` matches the property exactly, case-insensitively after trimming. Optional per column:
   - `label`: the column heading.
+  - `icon`: an emoji, icon name or image URL shown before the heading (the same values a View's `icon` accepts). Columns without one show a coloured dot.
   - `limit`: a work-in-progress limit, shown as `n/limit`. It warns and never blocks.
   - `max`: the number of cards shown before a "+N more" footer.
   - `sort`: the same grammar as the View's `sort`.
