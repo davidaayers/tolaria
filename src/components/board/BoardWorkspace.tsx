@@ -22,8 +22,8 @@ export interface BoardWorkspaceProps {
   /** The board's own View, which never serves as one of its own columns. */
   boardView?: ViewFile | null
   locale: AppLocale
-  onUpdateFrontmatter: (path: string, key: string, value: FrontmatterValue) => Promise<unknown> | void
-  onDeleteProperty: (path: string, key: string) => Promise<unknown> | void
+  onUpdateFrontmatter: (path: string, key: string, value: FrontmatterValue) => Promise<unknown>
+  onDeleteProperty: (path: string, key: string) => Promise<unknown>
   /** Leave the board for the normal list and editor layout with this note open. */
   onOpenInList: (entry: VaultEntry) => void
 }

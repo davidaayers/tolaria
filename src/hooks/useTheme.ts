@@ -14,12 +14,14 @@ const SCALED_FONT_SIZE_VARS = [
   '--table-font-size',
 ]
 
-function scaleFontSizeVars(vars: Record<string, string>, editorFontSize: number) {
+function scaleFontSizeVars(vars: Record<string, string>, editorFontSize: number): Record<string, string> {
+  const scaled = new Map(Object.entries(vars))
   for (const name of SCALED_FONT_SIZE_VARS) {
-    const themeSize = Number.parseFloat(vars[name] ?? '')
+    const themeSize = Number.parseFloat(scaled.get(name) ?? '')
     if (Number.isNaN(themeSize)) continue
-    vars[name] = `${scaleToEditorFontSize(themeSize, editorFontSize)}px`
+    scaled.set(name, `${scaleToEditorFontSize(themeSize, editorFontSize)}px`)
   }
+  return Object.fromEntries(scaled)
 }
 
 type ThemeValue = string | number | Record<string, unknown> | unknown[]
@@ -73,9 +75,10 @@ export function useEditorTheme() {
   const editorFont = useEditorFont()
   const editorFontSize = useEditorFontSize()
   const { cssVars, styleString } = useMemo(() => {
-    const vars = flattenTheme(themeConfig as Record<string, ThemeValue>)
-    vars['--editor-font-family'] = EDITOR_FONT_FAMILIES[editorFont]
-    scaleFontSizeVars(vars, editorFontSize)
+    const vars = scaleFontSizeVars({
+      ...flattenTheme(themeConfig as Record<string, ThemeValue>),
+      '--editor-font-family': Reflect.get(EDITOR_FONT_FAMILIES, editorFont) as string,
+    }, editorFontSize)
     const str = Object.entries(vars)
       .map(([k, v]) => `${k}: ${v};`)
       .join('\n')

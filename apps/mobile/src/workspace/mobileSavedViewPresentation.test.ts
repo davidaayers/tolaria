@@ -54,7 +54,8 @@ describe('saved view presentation on mobile', () => {
 
   it('writes the presentation block back so a save does not erase it', () => {
     const parsed = parseView(boardViewYaml)
-    const reparsed = parseView(serializeMobileSavedViewDefinition(parsed!.definition))
+    if (!parsed) throw new Error('the board view did not parse')
+    const reparsed = parseView(serializeMobileSavedViewDefinition(parsed.definition))
 
     expect(reparsed?.definition.presentation).toEqual(boardPresentation)
   })

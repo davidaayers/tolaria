@@ -70,7 +70,7 @@ function applyWrites(entry: VaultEntry, writes: BoardMovePlan['writes']): VaultE
     const lower = key.toLowerCase()
     if (lower === 'status') next.status = String(value)
     else if (lower === 'type' || lower === 'isa') next.isA = String(value)
-    else next.properties[key] = value
+    else Reflect.set(next.properties, key, value)
   }
   return next
 }
@@ -110,7 +110,10 @@ export interface BoardMoveWriters {
 }
 
 /** Apply a move plan through the existing frontmatter write path, one edit at a time. */
-export async function applyBoardMovePlan(path: string, plan: BoardMovePlan, writers: BoardMoveWriters): Promise<void> {
-  for (const { key, value } of plan.writes) await writers.updateProperty(path, key, value)
-  for (const key of plan.removals) await writers.deleteProperty(path, key)
+export function applyBoardMovePlan(path: string, plan: BoardMovePlan, writers: BoardMoveWriters): Promise<void> {
+  const steps = [
+    ...plan.writes.map(({ key, value }) => () => writers.updateProperty(path, key, value)),
+    ...plan.removals.map((key) => () => writers.deleteProperty(path, key)),
+  ]
+  return steps.reduce<Promise<unknown>>((chain, step) => chain.then(step), Promise.resolve()).then(() => undefined)
 }

@@ -56,7 +56,8 @@ describe('planBoardMove', () => {
 
   it('refuses Other, missing views and target views it cannot satisfy by writing', () => {
     const columns = buildBoardColumns([task({ Stage: 'mystery' })], { type: 'board', properties: [], columns: COLS, staleAfterDays: null, staleFrom: null, colors: {} }, VIEWS)
-    const other = columns.find((c) => c.isOther)!
+    const other = columns.find((c) => c.isOther)
+    if (!other) throw new Error('expected an Other column')
     expect(planBoardMove({ entry: task({ Stage: 'mystery' }), columns, target: other, today: TODAY })).toBeNull()
 
     expect(plan(task({}), VIEWS, [col('todo.yml'), col('gone.yml')], 'gone.yml')).toBeNull()

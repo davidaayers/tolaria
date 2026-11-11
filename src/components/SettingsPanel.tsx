@@ -909,7 +909,7 @@ function buildEditorFontSizeOptions(t: Translate): Array<{ value: string; label:
 }
 
 function buildEditorFontOptions(t: Translate): Array<{ value: EditorFont; label: string }> {
-  return EDITOR_FONTS.map((value) => ({ value, label: t(EDITOR_FONT_LABEL_KEYS[value]) }))
+  return EDITOR_FONTS.map((value) => ({ value, label: t(Reflect.get(EDITOR_FONT_LABEL_KEYS, value) as TranslationKey) }))
 }
 
 function ThemeModeControl({

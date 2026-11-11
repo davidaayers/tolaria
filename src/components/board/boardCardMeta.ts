@@ -80,7 +80,7 @@ export function scalarText(value: VaultPropertyValue | undefined): string | null
 
 export function propertyValue(entry: VaultEntry, name: string): VaultPropertyValue | undefined {
   const key = Object.keys(entry.properties).find((candidate) => candidate.toLowerCase() === name.toLowerCase())
-  return key === undefined ? undefined : entry.properties[key]
+  return key === undefined ? undefined : (Reflect.get(entry.properties, key) as VaultPropertyValue)
 }
 
 function mostCommon(counts: Map<string, number>): [string, number] | null {

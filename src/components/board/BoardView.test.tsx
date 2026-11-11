@@ -48,7 +48,7 @@ function renderBoard(
   return { onSelectCard }
 }
 
-const region = (name: string) => screen.getByRole('region', { name: new RegExp(name) })
+const region = (name: string) => screen.getByRole('region', { name })
 
 describe('BoardView', () => {
   it('renders one labelled region per column with its cards and count', () => {

@@ -178,10 +178,10 @@ export function BoardView({ columns, properties, allEntries, typeEntryMap, selec
   }
   const cardProps = { properties, allEntries, typeEntryMap, locale, colors, onSelect: onSelectCard, selectedPath }
   return (
-    <div role="group" aria-label={t('board.region')} className="flex h-full items-start gap-3 overflow-x-auto p-3">
+    <section aria-label={t('board.region')} className="flex h-full items-start gap-3 overflow-x-auto p-3">
       {columns.map((column, index) => (
         <BoardColumnRegion key={column.key} column={column} index={index} t={t} cardProps={cardProps} />
       ))}
-    </div>
+    </section>
   )
 }
