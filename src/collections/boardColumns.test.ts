@@ -25,7 +25,7 @@ function board(
   columns: BoardColumnConfig[] | null,
   overrides: Partial<BoardCollectionPresentationConfig> = {},
 ): BoardCollectionPresentationConfig {
-  return { type: 'board', groupBy: 'Stage', properties: [], columns, staleAfterDays: null, staleFrom: null, ...overrides }
+  return { type: 'board', groupBy: 'Stage', properties: [], columns, staleAfterDays: null, staleFrom: null, colors: {}, ...overrides }
 }
 
 const withStatus = (title: string, status: unknown, extra: Partial<VaultEntry> = {}) =>

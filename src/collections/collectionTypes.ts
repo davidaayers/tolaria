@@ -11,6 +11,9 @@ export interface ListCollectionPresentationConfig {
   properties: string[]
 }
 
+export const BOARD_CHIP_COLORS = ['blue', 'green', 'orange', 'purple', 'teal', 'pink', 'yellow', 'red', 'gray'] as const
+export type BoardChipColor = typeof BOARD_CHIP_COLORS[number]
+
 export interface BoardColumnConfig {
   /** Matched against the group-by property, case-insensitively after trimming. */
   value: string
@@ -33,6 +36,8 @@ export interface BoardCollectionPresentationConfig {
   columns: BoardColumnConfig[] | null
   staleAfterDays: number | null
   staleFrom: string | null
+  /** Chip colour per property value (lowercase key); values without an entry get an automatic colour. */
+  colors: Record<string, BoardChipColor>
 }
 
 export type CollectionPresentationConfig = ListCollectionPresentationConfig | BoardCollectionPresentationConfig

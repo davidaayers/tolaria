@@ -13,7 +13,7 @@ function column(value: string, overrides: Partial<BoardColumnConfig> = {}): Boar
 
 function plan(entry: VaultEntry, columns: BoardColumnConfig[], target: string | null, groupBy = 'Stage') {
   const config: BoardCollectionPresentationConfig = {
-    type: 'board', groupBy, properties: [], columns, staleAfterDays: null, staleFrom: null,
+    type: 'board', groupBy, properties: [], columns, staleAfterDays: null, staleFrom: null, colors: {},
   }
   const built = buildBoardColumns([entry], config)
   const targetColumn = built.find((candidate) => (target === null ? candidate.isOther : candidate.key === target))

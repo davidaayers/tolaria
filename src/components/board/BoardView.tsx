@@ -15,6 +15,8 @@ export interface BoardViewProps {
   typeEntryMap: Record<string, VaultEntry>
   selectedPath: string | null
   locale: AppLocale
+  /** Configured chip colours by lowercase value. */
+  colors?: Record<string, string>
   onSelectCard: (entry: VaultEntry) => void
 }
 
@@ -22,6 +24,7 @@ type Translate = (key: Parameters<typeof translate>[1], values?: Parameters<type
 
 interface CardProps {
   locale: AppLocale
+  colors?: Record<string, string>
   hiddenValues?: Map<string, string>
   card: BoardCard
   selected: boolean
@@ -31,7 +34,7 @@ interface CardProps {
   onSelect: (entry: VaultEntry) => void
 }
 
-function BoardCardButton({ card, selected, properties, allEntries, typeEntryMap, locale, hiddenValues, onSelect }: CardProps) {
+function BoardCardButton({ card, selected, properties, allEntries, typeEntryMap, locale, hiddenValues, colors, onSelect }: CardProps) {
   const { entry } = card
   const openChipTarget = (target: VaultEntry, event: MouseEvent) => {
     event.stopPropagation()
@@ -56,6 +59,7 @@ function BoardCardButton({ card, selected, properties, allEntries, typeEntryMap,
           typeEntryMap={typeEntryMap}
           locale={locale}
           hiddenValues={hiddenValues}
+          colors={colors}
           onOpenNote={openChipTarget}
         />
       )}
@@ -144,12 +148,12 @@ function BoardColumnRegion({ column, index, t, cardProps }: {
 }
 
 /** Full-width board for a saved View with `presentation.type: board` (ADR-0301). Presentational only. */
-export function BoardView({ columns, properties, allEntries, typeEntryMap, selectedPath, locale, onSelectCard }: BoardViewProps) {
+export function BoardView({ columns, properties, allEntries, typeEntryMap, selectedPath, locale, colors, onSelectCard }: BoardViewProps) {
   const t: Translate = (key, values) => translate(locale, key, values)
   if (columns.length === 0) {
     return <div className="flex h-full items-center justify-center text-sm text-muted-foreground">{t('board.empty')}</div>
   }
-  const cardProps = { properties, allEntries, typeEntryMap, locale, onSelect: onSelectCard, selectedPath }
+  const cardProps = { properties, allEntries, typeEntryMap, locale, colors, onSelect: onSelectCard, selectedPath }
   return (
     <div role="group" aria-label={t('board.region')} className="flex h-full items-start gap-3 overflow-x-auto p-3">
       {columns.map((column, index) => (

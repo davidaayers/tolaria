@@ -78,6 +78,7 @@ export function BoardWorkspace(props: BoardWorkspaceProps) {
           typeEntryMap={typeEntryMap}
           selectedPath={selectedPath}
           locale={locale}
+          colors={presentation.colors}
           onSelectCard={(entry) => setSelectedPath(entry.path)}
         />
       </div>

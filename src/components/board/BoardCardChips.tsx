@@ -15,6 +15,8 @@ export interface BoardCardChipsProps {
   locale: AppLocale
   /** Lowercase property name -> lowercase value to leave out because most cards in the column share it. */
   hiddenValues?: Map<string, string>
+  /** Configured chip colours by lowercase value. */
+  colors?: Record<string, string>
   onOpenNote: (entry: VaultEntry, event: MouseEvent) => void
 }
 
@@ -44,13 +46,13 @@ function DueChip({ value, locale }: { value: string; locale: AppLocale }) {
   )
 }
 
-function ScalarChip({ name, text, locale }: { name: string; text: string; locale: AppLocale }) {
+function ScalarChip({ name, text, locale, colors }: { name: string; text: string; locale: AppLocale; colors?: Record<string, string> }) {
   if (isDueProperty(name) && dueUrgency(text)) return <DueChip value={text} locale={locale} />
-  return <span className={CHIP_CLASSNAME} style={accentStyle(accentForValue(text))}>{text}</span>
+  return <span className={CHIP_CLASSNAME} style={accentStyle(colors?.[text.toLowerCase()] ?? accentForValue(text))}>{text}</span>
 }
 
 /** Card metadata: coloured scalar chips and due-date urgency; lists and wikilinks use the shared chips. */
-export function BoardCardChips({ entry, properties, allEntries, typeEntryMap, locale, hiddenValues, onOpenNote }: BoardCardChipsProps) {
+export function BoardCardChips({ entry, properties, allEntries, typeEntryMap, locale, hiddenValues, colors, onOpenNote }: BoardCardChipsProps) {
   const scalars: Array<{ name: string; text: string }> = []
   const shared: string[] = []
   for (const name of properties) {
@@ -62,7 +64,7 @@ export function BoardCardChips({ entry, properties, allEntries, typeEntryMap, lo
     <>
       {scalars.length > 0 && (
         <div className="flex flex-wrap gap-1">
-          {scalars.map(({ name, text }) => <ScalarChip key={name} name={name} text={text} locale={locale} />)}
+          {scalars.map(({ name, text }) => <ScalarChip key={name} name={name} text={text} locale={locale} colors={colors} />)}
         </div>
       )}
       {shared.length > 0 && (

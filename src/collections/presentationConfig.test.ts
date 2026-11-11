@@ -28,6 +28,7 @@ describe('presentationFromViewDefinition', () => {
       properties: ['area', 'due'],
       staleAfterDays: 180,
       staleFrom: 'added',
+      colors: { Team: 'purple', ops: 'green', odd: 'chartreuse', bad: 3 },
       columns: [
         { value: 'backlog', label: 'Backlog', max: 5 },
         { value: 'in-progress', limit: 3, sort: 'property:due:asc' },
@@ -40,6 +41,7 @@ describe('presentationFromViewDefinition', () => {
       properties: ['area', 'due'],
       staleAfterDays: 180,
       staleFrom: 'added',
+      colors: { team: 'purple', ops: 'green' },
       columns: [
         { value: 'backlog', label: 'Backlog', limit: null, max: 5, sort: null, filter: null, stamp: null },
         { value: 'in-progress', label: null, limit: 3, max: null, sort: 'property:due:asc', filter: null, stamp: null },
@@ -50,7 +52,7 @@ describe('presentationFromViewDefinition', () => {
 
   it('derives columns when none are declared', () => {
     const result = presentationFromViewDefinition(view({ type: 'board', groupBy: 'status' }))
-    expect(result).toMatchObject({ type: 'board', groupBy: 'status', columns: null, properties: [], staleAfterDays: null, staleFrom: null })
+    expect(result).toMatchObject({ type: 'board', groupBy: 'status', columns: null, properties: [], staleAfterDays: null, staleFrom: null, colors: {} })
   })
 
   it.each([
@@ -106,5 +108,11 @@ describe('presentationFromViewDefinition', () => {
       staleAfterDays: null,
       columns: [{ value: 'todo', filter: null, max: null, limit: null }],
     })
+  })
+
+  it('keeps only known accent names in colors, lowercasing the keys, and ignores a non-object value', () => {
+    const result = presentationFromViewDefinition(view({ type: 'board', groupBy: 'status', colors: { ' Team ': 'Blue', x: 'nope', y: ['red'] } }))
+    expect(result).toMatchObject({ colors: { team: 'blue' } })
+    expect(presentationFromViewDefinition(view({ type: 'board', groupBy: 'status', colors: 'blue' }))).toMatchObject({ colors: {} })
   })
 })

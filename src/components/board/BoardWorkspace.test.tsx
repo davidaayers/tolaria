@@ -19,7 +19,7 @@ function column(value: string, overrides: Partial<BoardColumnConfig> = {}): Boar
 }
 
 const presentation = (columns: BoardColumnConfig[]): BoardCollectionPresentationConfig => ({
-  type: 'board', groupBy: 'Stage', properties: [], columns, staleAfterDays: null, staleFrom: null,
+  type: 'board', groupBy: 'Stage', properties: [], columns, staleAfterDays: null, staleFrom: null, colors: {},
 })
 
 const note = (title: string, properties: VaultEntry['properties'], snippet = '') =>

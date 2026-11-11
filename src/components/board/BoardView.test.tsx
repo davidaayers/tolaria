@@ -11,7 +11,7 @@ function column(value: string, overrides: Partial<BoardColumnConfig> = {}): Boar
 }
 
 function config(columns: BoardColumnConfig[] | null): BoardCollectionPresentationConfig {
-  return { type: 'board', groupBy: 'Stage', properties: [], columns, staleAfterDays: null, staleFrom: null }
+  return { type: 'board', groupBy: 'Stage', properties: [], columns, staleAfterDays: null, staleFrom: null, colors: {} }
 }
 
 function note(title: string, stage?: string): VaultEntry {
@@ -156,5 +156,15 @@ describe('BoardView', () => {
     renderBoard([note('a', 'todo')], [column('todo')])
     expect(screen.getByTestId('board-column-todo').className).not.toContain('w-72')
     expect(screen.getByTestId('board-column-todo-notes').className).toContain('mask-image')
+  })
+
+  it('uses the colour configured for a value instead of the automatic one', () => {
+    const entries = [
+      makeEntry({ path: '/v/a.md', title: 'a', properties: { Stage: 'todo', area: 'Ops' } }),
+      makeEntry({ path: '/v/b.md', title: 'b', properties: { Stage: 'todo', area: 'jc' } }),
+    ]
+    renderBoard(entries, [column('todo')], { properties: ['area'], colors: { ops: 'pink' } })
+    expect(screen.getByText('Ops').getAttribute('style')).toContain('--accent-pink')
+    expect(screen.getByText('jc').getAttribute('style')).not.toContain('--accent-pink')
   })
 })

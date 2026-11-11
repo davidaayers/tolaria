@@ -2,6 +2,8 @@ import type { FilterGroup, ViewDefinition } from '../types'
 import {
   COLLECTION_PRESENTATION_BOARD,
   COLLECTION_PRESENTATION_LIST,
+  BOARD_CHIP_COLORS,
+  type BoardChipColor,
   type BoardCollectionPresentationConfig,
   type BoardColumnConfig,
   type CollectionPresentationConfig,
@@ -63,6 +65,19 @@ function boardColumns(value: unknown): BoardColumnConfig[] | null {
   return columns
 }
 
+function isChipColor(value: unknown): value is BoardChipColor {
+  return typeof value === 'string' && (BOARD_CHIP_COLORS as readonly string[]).includes(value.toLowerCase())
+}
+
+function chipColors(value: unknown): Record<string, BoardChipColor> {
+  if (!isRecord(value)) return {}
+  const colors: Record<string, BoardChipColor> = {}
+  for (const [key, color] of Object.entries(value)) {
+    if (isChipColor(color)) colors[key.trim().toLowerCase()] = color.toLowerCase() as BoardChipColor
+  }
+  return colors
+}
+
 function boardPresentation(source: UnknownRecord): BoardCollectionPresentationConfig | null {
   const groupBy = nullableString(source.groupBy)
   if (groupBy === null) return null
@@ -73,6 +88,7 @@ function boardPresentation(source: UnknownRecord): BoardCollectionPresentationCo
     columns: boardColumns(source.columns),
     staleAfterDays: positiveInteger(source.staleAfterDays),
     staleFrom: nullableString(source.staleFrom),
+    colors: chipColors(source.colors),
   }
 }
 
