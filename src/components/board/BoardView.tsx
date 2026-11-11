@@ -1,5 +1,16 @@
 import { useState } from 'react'
 import type { MouseEvent } from 'react'
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core'
 import type { BoardCard, BoardColumn } from '../../collections/boardColumns'
 import { translate, type AppLocale } from '../../lib/i18n'
 import type { VaultEntry } from '../../types'
@@ -19,7 +30,14 @@ export interface BoardViewProps {
   /** Configured chip colours by lowercase value. */
   colors?: Record<string, string>
   onSelectCard: (entry: VaultEntry) => void
+  /** Drop a dragged card on a column. Dragging is off unless this and `getMovableKeys` are set. */
+  onMoveCard?: (entry: VaultEntry, columnKey: string) => void
+  /** Keys of the columns this note can be moved into; other columns refuse the drop. */
+  getMovableKeys?: (entry: VaultEntry) => Set<string>
 }
+
+/** How a column responds while a card is being dragged. */
+type DropState = 'allowed' | 'blocked' | undefined
 
 type Translate = (key: Parameters<typeof translate>[1], values?: Parameters<typeof translate>[2]) => string
 
@@ -32,22 +50,27 @@ interface CardProps {
   properties: string[]
   allEntries: VaultEntry[]
   typeEntryMap: Record<string, VaultEntry>
+  draggable: boolean
   onSelect: (entry: VaultEntry) => void
 }
 
-function BoardCardButton({ card, selected, properties, allEntries, typeEntryMap, locale, hiddenValues, colors, onSelect }: CardProps) {
+function BoardCardButton({ card, selected, properties, allEntries, typeEntryMap, locale, hiddenValues, colors, draggable, onSelect }: CardProps) {
   const { entry } = card
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: entry.path, disabled: !draggable })
   const openChipTarget = (target: VaultEntry, event: MouseEvent) => {
     event.stopPropagation()
     onSelect(target)
   }
   return (
     <Button
+      {...(draggable ? attributes : {})}
+      {...(draggable ? listeners : {})}
+      ref={setNodeRef}
       type="button"
       variant="outline"
       aria-pressed={selected}
       data-testid={`board-card-${entry.path}`}
-      className="h-auto w-full flex-col items-start gap-1.5 whitespace-normal px-3 py-2 text-left font-normal data-[selected=true]:border-primary"
+      className={`h-auto w-full flex-col items-start gap-1.5 whitespace-normal px-3 py-2 text-left font-normal data-[selected=true]:border-primary ${draggable ? 'cursor-grab touch-none' : ''} ${isDragging ? 'opacity-40' : ''}`}
       data-selected={selected}
       onClick={() => onSelect(entry)}
     >
@@ -150,19 +173,30 @@ function ColumnNotes({ column, expanded, onToggle, t, cardProps }: {
   )
 }
 
-function BoardColumnRegion({ column, index, t, cardProps }: {
+const DROP_STATE_CLASS: Record<'allowed' | 'blocked', string> = {
+  allowed: 'ring-2 ring-primary/60',
+  blocked: 'opacity-50',
+}
+
+function BoardColumnRegion({ column, index, t, cardProps, dropState }: {
   column: BoardColumn
   index: number
+  dropState: DropState
   t: Translate
   cardProps: Omit<CardProps, 'card' | 'selected'> & { selectedPath: string | null }
 }) {
   const [expanded, setExpanded] = useState(false)
+  const { setNodeRef, isOver } = useDroppable({ id: column.key })
   const label = column.isOther ? t('board.column.other') : column.label
+  const dropClass = dropState ? DROP_STATE_CLASS[dropState] : ''
+  const overClass = dropState === 'allowed' && isOver ? 'bg-primary/10' : ''
   return (
     <section
+      ref={setNodeRef}
       aria-label={label}
       data-testid={`board-column-${column.key}`}
-      className="flex max-h-full min-h-0 min-w-56 max-w-80 flex-1 basis-60 flex-col gap-2 rounded-lg bg-muted/40 p-2"
+      data-drop={dropState}
+      className={`flex max-h-full min-h-0 min-w-56 max-w-80 flex-1 basis-60 flex-col gap-2 rounded-lg bg-muted/40 p-2 transition-colors ${dropClass} ${overClass}`}
     >
       <ColumnHeader column={column} label={label} index={index} t={t} />
       <ColumnNotes column={column} expanded={expanded} onToggle={() => setExpanded((value) => !value)} t={t} cardProps={cardProps} />
@@ -170,18 +204,63 @@ function BoardColumnRegion({ column, index, t, cardProps }: {
   )
 }
 
+function findCard(columns: BoardColumn[], path: string): VaultEntry | null {
+  for (const column of columns) {
+    const card = column.cards.find((candidate) => candidate.entry.path === path)
+    if (card) return card.entry
+  }
+  return null
+}
+
+function dropStateFor(column: BoardColumn, movable: Set<string> | null): DropState {
+  if (!movable) return undefined
+  return movable.has(column.key) ? 'allowed' : 'blocked'
+}
+
+function DragPreview({ entry }: { entry: VaultEntry }) {
+  return (
+    <div className="w-60 cursor-grabbing rounded-md border border-primary bg-background px-3 py-2 shadow-lg">
+      <span className="line-clamp-2 break-words text-sm font-medium text-foreground">{entry.title}</span>
+    </div>
+  )
+}
+
+/** Drag a card between columns: tracks the card in flight and which columns would accept it. */
+function useBoardDrag({ columns, onMoveCard, getMovableKeys }: Pick<BoardViewProps, 'columns' | 'onMoveCard' | 'getMovableKeys'>) {
+  const [activePath, setActivePath] = useState<string | null>(null)
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
+  const draggable = Boolean(onMoveCard && getMovableKeys)
+  const active = activePath ? findCard(columns, activePath) : null
+  const movable = active && getMovableKeys ? getMovableKeys(active) : null
+
+  const onDragStart = ({ active: dragged }: DragStartEvent) => setActivePath(String(dragged.id))
+  const onDragCancel = () => setActivePath(null)
+  const onDragEnd = ({ active: dropped, over }: DragEndEvent) => {
+    setActivePath(null)
+    const entry = findCard(columns, String(dropped.id))
+    if (!entry || !over || !getMovableKeys) return
+    const target = String(over.id)
+    if (getMovableKeys(entry).has(target)) onMoveCard?.(entry, target)
+  }
+  return { sensors, draggable, active, movable, onDragStart, onDragEnd, onDragCancel }
+}
+
 /** Full-width board for a saved View with `presentation.type: board` (ADR-0301). Presentational only. */
-export function BoardView({ columns, properties, allEntries, typeEntryMap, selectedPath, locale, colors, onSelectCard }: BoardViewProps) {
+export function BoardView({ columns, properties, allEntries, typeEntryMap, selectedPath, locale, colors, onSelectCard, onMoveCard, getMovableKeys }: BoardViewProps) {
   const t: Translate = (key, values) => translate(locale, key, values)
+  const drag = useBoardDrag({ columns, onMoveCard, getMovableKeys })
   if (columns.length === 0) {
     return <div className="flex h-full items-center justify-center text-sm text-muted-foreground">{t('board.empty')}</div>
   }
-  const cardProps = { properties, allEntries, typeEntryMap, locale, colors, onSelect: onSelectCard, selectedPath }
+  const cardProps = { properties, allEntries, typeEntryMap, locale, colors, onSelect: onSelectCard, selectedPath, draggable: drag.draggable }
   return (
-    <section aria-label={t('board.region')} className="flex h-full items-start gap-3 overflow-x-auto p-3">
-      {columns.map((column, index) => (
-        <BoardColumnRegion key={column.key} column={column} index={index} t={t} cardProps={cardProps} />
-      ))}
-    </section>
+    <DndContext sensors={drag.sensors} onDragStart={drag.onDragStart} onDragEnd={drag.onDragEnd} onDragCancel={drag.onDragCancel}>
+      <section aria-label={t('board.region')} className="flex h-full items-start gap-3 overflow-x-auto p-3">
+        {columns.map((column, index) => (
+          <BoardColumnRegion key={column.key} column={column} index={index} t={t} cardProps={cardProps} dropState={dropStateFor(column, drag.movable)} />
+        ))}
+      </section>
+      <DragOverlay>{drag.active ? <DragPreview entry={drag.active} /> : null}</DragOverlay>
+    </DndContext>
   )
 }

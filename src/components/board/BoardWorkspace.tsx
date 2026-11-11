@@ -91,6 +91,8 @@ export function BoardWorkspace(props: BoardWorkspaceProps) {
           locale={locale}
           colors={presentation.colors}
           onSelectCard={(entry) => setSelectedPath(entry.path)}
+          onMoveCard={(entry, columnKey) => { void move(entry, columnKey) }}
+          getMovableKeys={(entry) => movableColumnKeys(entry, columns)}
         />
       </div>
       {selectedEntry && (
