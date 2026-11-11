@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { buildBoardColumns, type BoardColumn } from '../../collections/boardColumns'
+import { planBoardCreate } from '../../collections/boardCreate'
 import { applyBoardMovePlan, planBoardMove } from '../../collections/boardMove'
 import type { BoardCollectionPresentationConfig } from '../../collections/collectionTypes'
 import type { AppLocale } from '../../lib/i18n'
@@ -8,7 +9,16 @@ import type { FrontmatterValue } from '../Inspector'
 import { getSortComparator } from '../../utils/noteListHelpers'
 import { parseSortConfig } from '../../utils/noteSort'
 import { buildTypeEntryMap } from '../../utils/typeColors'
+import { isDueProperty } from './boardCardMeta'
+import {
+  boardFilterOptions,
+  EMPTY_BOARD_FILTER,
+  entryMatchesBoardFilter,
+  isBoardFilterActive,
+  type BoardFilter,
+} from './boardFilter'
 import { BoardSidePanel } from './BoardSidePanel'
+import { BoardTopBar } from './BoardTopBar'
 import { BoardView } from './BoardView'
 
 export interface BoardWorkspaceProps {
@@ -27,6 +37,8 @@ export interface BoardWorkspaceProps {
   onDeleteProperty: (path: string, key: string) => Promise<unknown>
   /** Leave the board for the normal list and editor layout with this note open. */
   onOpenInList: (entry: VaultEntry) => void
+  /** Create a note. Without it the board offers no way to add cards. */
+  onCreateNote?: (title: string, type: string, creationPath: 'plus_button', extras: { initialProperties: Record<string, string | number | boolean>; openTab: false }) => unknown
 }
 
 function todayIso(now: Date = new Date()): string {
@@ -64,9 +76,49 @@ function useBoardMove(props: BoardWorkspaceProps, columns: BoardColumn[]) {
   }, [columns, onDeleteProperty, onUpdateFrontmatter])
 }
 
-/** Full-width board plus the selected-note side panel for a board saved View (ADR-0301). */
+function useBoardFilter(entries: VaultEntry[], properties: string[]) {
+  const [filter, setFilter] = useState<BoardFilter>(EMPTY_BOARD_FILTER)
+  const matchPaths = useMemo(() => {
+    if (!isBoardFilterActive(filter)) return null
+    const now = new Date()
+    return new Set(entries.filter((entry) => entryMatchesBoardFilter(entry, filter, properties, now)).map((entry) => entry.path))
+  }, [entries, filter, properties])
+  const options = useMemo(() => boardFilterOptions(entries, properties), [entries, properties])
+  return { filter, setFilter, matchPaths, options, hasDue: properties.some(isDueProperty) }
+}
+
+function useBoardCreate({ columns, boardView, onCreateNote, clearFilter }: {
+  columns: BoardColumn[]
+  boardView: ViewFile | null | undefined
+  onCreateNote: BoardWorkspaceProps['onCreateNote']
+  clearFilter: () => void
+}) {
+  const [composingKey, setComposingKey] = useState<string | null>(null)
+  const creatableKeys = useMemo(() => {
+    if (!onCreateNote) return new Set<string>()
+    const today = todayIso()
+    return new Set(columns.filter((target) => planBoardCreate({ target, boardView, today })).map((column) => column.key))
+  }, [boardView, columns, onCreateNote])
+  const createCard = useCallback((column: BoardColumn, title: string) => {
+    const plan = planBoardCreate({ target: column, boardView, today: todayIso() })
+    if (!plan || !onCreateNote) return
+    clearFilter()
+    void onCreateNote(title, plan.type, 'plus_button', { initialProperties: plan.properties, openTab: false })
+  }, [boardView, clearFilter, onCreateNote])
+  const firstCreatable = columns.find((column) => creatableKeys.has(column.key))
+  return {
+    composingKey,
+    setComposingKey,
+    createCard,
+    canCreateIn: (column: BoardColumn) => creatableKeys.has(column.key),
+    canCreate: firstCreatable !== undefined,
+    startNewCard: () => setComposingKey(firstCreatable?.key ?? null),
+  }
+}
+
+/** Board top bar, full-width board and the selected-note side panel for a board saved View (ADR-0301). */
 export function BoardWorkspace(props: BoardWorkspaceProps) {
-  const { presentation, viewSort, entries, allEntries, views, boardView, locale, onOpenInList } = props
+  const { presentation, viewSort, entries, allEntries, views, boardView, locale, onOpenInList, onCreateNote } = props
   const [selectedPath, setSelectedPath] = useState<string | null>(null)
   const columns = useMemo(
     () => buildBoardColumns(sortedByView(entries, viewSort), presentation, views, boardView),
@@ -74,39 +126,61 @@ export function BoardWorkspace(props: BoardWorkspaceProps) {
   )
   const typeEntryMap = useMemo(() => buildTypeEntryMap(allEntries), [allEntries])
   const move = useBoardMove(props, columns)
+  const { filter, setFilter, matchPaths, options, hasDue } = useBoardFilter(entries, presentation.properties)
+  const create = useBoardCreate({ columns, boardView, onCreateNote, clearFilter: () => setFilter(EMPTY_BOARD_FILTER) })
 
   const selectedColumn = selectedPath ? findColumn(columns, selectedPath) : null
   const selectedEntry = selectedPath ? entries.find((entry) => entry.path === selectedPath) ?? null : null
   const movableKeys = useMemo(() => movableColumnKeys(selectedEntry, columns), [columns, selectedEntry])
 
   return (
-    <div className="flex h-full min-w-0 flex-1">
-      <div className="min-w-0 flex-1">
-        <BoardView
-          columns={columns}
-          properties={presentation.properties}
-          allEntries={allEntries}
-          typeEntryMap={typeEntryMap}
-          selectedPath={selectedPath}
-          locale={locale}
-          colors={presentation.colors}
-          onSelectCard={(entry) => setSelectedPath(entry.path)}
-          onMoveCard={(entry, columnKey) => { void move(entry, columnKey) }}
-          getMovableKeys={(entry) => movableColumnKeys(entry, columns)}
-        />
+    <div className="flex h-full min-w-0 flex-1 flex-col">
+      <BoardTopBar
+        title={boardView?.definition.name ?? ''}
+        icon={boardView?.definition.icon ?? null}
+        total={entries.length}
+        shown={matchPaths ? matchPaths.size : entries.length}
+        filter={filter}
+        options={options}
+        hasDue={hasDue}
+        canCreate={create.canCreate}
+        locale={locale}
+        onFilterChange={setFilter}
+        onNewCard={create.startNewCard}
+      />
+      <div className="flex min-h-0 flex-1">
+        <div className="min-w-0 flex-1">
+          <BoardView
+            columns={columns}
+            properties={presentation.properties}
+            allEntries={allEntries}
+            typeEntryMap={typeEntryMap}
+            selectedPath={selectedPath}
+            locale={locale}
+            colors={presentation.colors}
+            matchPaths={matchPaths}
+            onSelectCard={(entry) => setSelectedPath(entry.path)}
+            onMoveCard={(entry, columnKey) => { void move(entry, columnKey) }}
+            getMovableKeys={(entry) => movableColumnKeys(entry, columns)}
+            canCreateIn={create.canCreateIn}
+            onCreateCard={create.createCard}
+            composingKey={create.composingKey}
+            onComposeChange={create.setComposingKey}
+          />
+        </div>
+        {selectedEntry && (
+          <BoardSidePanel
+            entry={selectedEntry}
+            columns={columns}
+            currentColumnKey={selectedColumn?.key ?? null}
+            movableKeys={movableKeys}
+            locale={locale}
+            onMove={(columnKey) => { void move(selectedEntry, columnKey) }}
+            onClose={() => setSelectedPath(null)}
+            onOpenInEditor={() => onOpenInList(selectedEntry)}
+          />
+        )}
       </div>
-      {selectedEntry && (
-        <BoardSidePanel
-          entry={selectedEntry}
-          columns={columns}
-          currentColumnKey={selectedColumn?.key ?? null}
-          movableKeys={movableKeys}
-          locale={locale}
-          onMove={(columnKey) => { void move(selectedEntry, columnKey) }}
-          onClose={() => setSelectedPath(null)}
-          onOpenInEditor={() => onOpenInList(selectedEntry)}
-        />
-      )}
     </div>
   )
 }

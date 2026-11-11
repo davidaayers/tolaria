@@ -1700,6 +1700,7 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
                 onUpdateFrontmatter={notes.handleUpdateFrontmatter}
                 onDeleteProperty={notes.handleDeleteProperty}
                 onOpenInList={handleOpenBoardNoteInList}
+                onCreateNote={notes.handleCreateNote}
               />
             </div>
           ) : (
