@@ -51,7 +51,7 @@ presentation:
 - **`properties`**: the card fields.
 - **`colors`**: an optional map from a property value to a chip colour (`blue`, `green`, `orange`, `purple`, `teal`, `pink`, `yellow`, `red`, `gray`), matched case-insensitively. Values without an entry get a stable automatic colour. Unknown colour names are ignored.
 - **`staleAfterDays`**: an optional staleness flag. It counts from the date property named by `staleFrom`, such as `added`, and falls back to the note's created date.
-- **Layout**: a board View replaces both the note list and the editor with a full-width board. Selecting a card opens a side panel with the note's properties and body, and an action that returns to the normal list and editor layout with that note open.
+- **Layout**: a board View replaces both the note list and the editor with a full-width board. Selecting a card opens a side panel with the note's properties and body, and an action that returns to the normal list and editor layout with that note open. While a board View is shown as a list this way, selecting the View again or using a "Back to board" bar above the list restores the board.
 - **Delivery**: in two phases. Phase 1 is the board, the side panel, and a column control in the panel. Phase 2 adds drag and drop between columns, using the same write path as the column control.
 
 ## Options considered

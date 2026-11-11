@@ -607,6 +607,7 @@
   "noteList.mobileSearchPlaceholder": "Search",
   "noteList.searchAction": "Search notes",
   "board.region": "Board",
+  "board.backToBoard": "Back to board",
   "board.empty": "No notes to show on this board",
   "board.column.empty": "No notes",
   "board.column.other": "Other",

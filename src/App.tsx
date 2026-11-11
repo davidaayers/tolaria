@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Sidebar } from './components/Sidebar'
 import { NoteList } from './components/NoteList'
+import { BoardBackBar } from './components/board/BoardBackBar'
 import { BoardWorkspace } from './components/board/BoardWorkspace'
 import { useBoardLayout } from './hooks/useBoardLayout'
 import { LazyEditor } from './components/LazyEditor'
@@ -1275,7 +1276,7 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
     shouldBlockNeighborhoodEscape,
   })
 
-  const { board: boardLayout, showInList: showBoardViewAsList } = useBoardLayout({
+  const { board: boardLayout, isListOverride: boardShownAsList, showInList: showBoardViewAsList, showBoard: showBoardAgain } = useBoardLayout({
     selection: effectiveSelection,
     views: vault.views,
     entries: visibleEntries,
@@ -1706,6 +1707,7 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
           {noteListVisible && (
             <>
               <div className={`app__note-list${aiActivity.highlightElement === 'notelist' ? ' ai-highlight' : ''}`} style={{ width: layout.noteListWidth }}>
+                {boardShownAsList && <BoardBackBar locale={appLocale} onBack={showBoardAgain} />}
                 {effectiveSelection.kind === 'filter' && effectiveSelection.filter === 'pulse' ? (
                   <PulseView vaultPath={gitSurfaces.historyRepositoryPath} onOpenNote={handlePulseOpenNote} refreshKey={gitHistoryRefreshKey} sidebarCollapsed={!sidebarVisible} onExpandSidebar={() => handleSetViewMode('all')} repositories={gitRepositories} selectedRepositoryPath={gitSurfaces.historyRepositoryPath} onRepositoryChange={gitSurfaces.setHistoryRepositoryPath} locale={appLocale} />
                 ) : (

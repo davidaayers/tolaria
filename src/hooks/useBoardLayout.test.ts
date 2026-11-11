@@ -41,16 +41,42 @@ describe('useBoardLayout', () => {
     expect(result.current.board).toBeNull()
   })
 
-  it('shows the View as a list after showInList, and shows the board again when the View is reselected', () => {
+  it('shows the View as a list after showInList, and shows the board again when the View is selected again', () => {
     const views = [view('board.yml', BOARD), view('other.yml', BOARD)]
     const { result, rerender } = renderLayout({ selection: select('board.yml'), views })
+    expect(result.current.isListOverride).toBe(false)
     act(() => result.current.showInList())
     expect(result.current.board).toBeNull()
+    expect(result.current.isListOverride).toBe(true)
 
     rerender({ selection: select('other.yml'), views })
     expect(result.current.board).not.toBeNull()
 
     rerender({ selection: select('board.yml'), views })
     expect(result.current.board).not.toBeNull()
+  })
+
+  it('shows the board again when the same View is clicked while it is shown as a list', () => {
+    const views = [view('board.yml', BOARD)]
+    const { result, rerender } = renderLayout({ selection: select('board.yml'), views })
+    act(() => result.current.showInList())
+    expect(result.current.board).toBeNull()
+    rerender({ selection: select('board.yml'), views })
+    expect(result.current.board).not.toBeNull()
+    expect(result.current.isListOverride).toBe(false)
+  })
+
+  it('shows the board again on demand with showBoard', () => {
+    const { result } = renderLayout({ selection: select('board.yml'), views: [view('board.yml', BOARD)] })
+    act(() => result.current.showInList())
+    act(() => result.current.showBoard())
+    expect(result.current.board).not.toBeNull()
+    expect(result.current.isListOverride).toBe(false)
+  })
+
+  it('never reports a list override for Views that are not boards', () => {
+    const { result } = renderLayout({ selection: select('list.yml'), views: [view('list.yml')] })
+    act(() => result.current.showInList())
+    expect(result.current.isListOverride).toBe(false)
   })
 })

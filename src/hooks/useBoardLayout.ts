@@ -20,28 +20,28 @@ interface UseBoardLayoutOptions {
 }
 
 /**
- * Decides whether the selected saved View renders as a board (ADR-0301) and
- * remembers a "show as list" choice until the selection changes.
+ * Decides whether the selected saved View renders as a board (ADR-0301). "Open in editor" shows the
+ * View as a list for that exact selection; selecting any View again (even this one) creates a new
+ * selection, so the board comes back.
  */
 export function useBoardLayout({ selection, views, entries }: UseBoardLayoutOptions) {
-  const [listCollectionId, setListCollectionId] = useState<string | null>(null)
+  const [listSelection, setListSelection] = useState<SidebarSelection | null>(null)
   const collection = useMemo(() => collectionFromSelection(selection, { views }), [selection, views])
   const presentation = collection.presentation
 
-  // Reset during render (React's "adjust state on change" pattern): the choice only lasts for this selection.
-  if (listCollectionId !== null && listCollectionId !== collection.id) setListCollectionId(null)
-
-  const showBoard = presentation.type === 'board' && collection.id !== listCollectionId
+  const isBoardView = presentation.type === 'board'
+  const isListOverride = isBoardView && listSelection === selection
   const board = useMemo<BoardLayout | null>(() => {
-    if (!showBoard || presentation.type !== 'board') return null
+    if (!isBoardView || isListOverride || presentation.type !== 'board') return null
     return {
       presentation,
       viewSort: collection.view?.definition.sort ?? null,
       view: collection.view ?? null,
       entries: resolveCollectionEntries(collection, entries, { views }).entries,
     }
-  }, [collection, entries, presentation, showBoard, views])
+  }, [collection, entries, isBoardView, isListOverride, presentation, views])
 
-  const showInList = useCallback(() => setListCollectionId(collection.id), [collection.id])
-  return { board, showInList }
+  const showInList = useCallback(() => setListSelection(selection), [selection])
+  const showBoard = useCallback(() => setListSelection(null), [])
+  return { board, isListOverride, showInList, showBoard }
 }
