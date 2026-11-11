@@ -611,7 +611,7 @@
   "board.column.empty": "No notes",
   "board.column.other": "Other",
   "board.column.limit": "{count}/{limit}",
-  "board.column.overLimit": "Over the limit of {limit}",
+  "board.column.wipLimit": "WIP limit: {limit}",
   "board.column.showMore": "+{count} more",
   "board.column.showFewer": "Show fewer",
   "board.column.missing": "View not found",

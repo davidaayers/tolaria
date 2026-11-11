@@ -13,7 +13,7 @@ function savedView(filename: string, filters: FilterGroup, extra: Partial<ViewFi
 const stageIs = (value: string): FilterGroup => ({ all: [{ field: 'Stage', op: 'equals', value }] })
 
 function col(view: string, overrides: Partial<BoardColumnConfig> = {}): BoardColumnConfig {
-  return { view, limit: null, max: null, stamp: null, ...overrides }
+  return { view, wipLimit: null, show: null, stamp: null, ...overrides }
 }
 
 function note(title: string, stage?: string, properties: VaultEntry['properties'] = {}): VaultEntry {
@@ -86,18 +86,18 @@ describe('BoardView', () => {
     expect(screen.getByRole('button', { name: /Alpha/ })).toHaveAttribute('aria-pressed', 'false')
   })
 
-  it('shows n/limit with the warning in the count pill when over the limit, and a plain count otherwise', () => {
-    renderBoard([note('a', 'todo'), note('b', 'todo'), note('c', 'todo'), note('d', 'done')], [col('todo.yml', { limit: 2 }), col('done.yml', { limit: 2 })])
+  it('shows n/limit with the WIP limit warning in the count pill when over the limit, and a plain count otherwise', () => {
+    renderBoard([note('a', 'todo'), note('b', 'todo'), note('c', 'todo'), note('d', 'done')], [col('todo.yml', { wipLimit: 2 }), col('done.yml', { wipLimit: 2 })])
     const todo = region('To do')
-    expect(within(todo).getByTitle('Over the limit of 2')).toHaveTextContent('3/2')
-    expect(within(todo).queryByText('Over the limit of 2')).not.toBeInTheDocument()
+    expect(within(todo).getByTitle('WIP limit: 2')).toHaveTextContent('3/2')
+    expect(within(todo).queryByText('WIP limit: 2')).not.toBeInTheDocument()
     const done = region('Done')
     expect(within(done).getByText('1/2')).toBeInTheDocument()
-    expect(within(done).queryByTitle(/Over the limit/)).not.toBeInTheDocument()
+    expect(within(done).queryByTitle(/WIP limit/)).not.toBeInTheDocument()
   })
 
-  it('caps cards at max, offers "+N more", and expands and collapses it', () => {
-    renderBoard(['a', 'b', 'c', 'd'].map((t) => note(t, 'todo')), [col('todo.yml', { max: 2 })])
+  it('caps cards at show, offers "+N more", and expands and collapses it', () => {
+    renderBoard(['a', 'b', 'c', 'd'].map((t) => note(t, 'todo')), [col('todo.yml', { show: 2 })])
     const todo = region('To do')
     expect(within(todo).queryByText('c')).not.toBeInTheDocument()
     fireEvent.click(within(todo).getByRole('button', { name: '+2 more' }))

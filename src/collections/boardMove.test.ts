@@ -13,7 +13,7 @@ function savedView(filename: string, nodes: FilterNode[] | FilterGroup): ViewFil
 }
 
 const eq = (field: string, value: unknown): FilterNode => ({ field, op: 'equals', value })
-const col = (view: string, overrides: Partial<BoardColumnConfig> = {}): BoardColumnConfig => ({ view, limit: null, max: null, stamp: null, ...overrides })
+const col = (view: string, overrides: Partial<BoardColumnConfig> = {}): BoardColumnConfig => ({ view, wipLimit: null, show: null, stamp: null, ...overrides })
 
 function plan(entry: VaultEntry, views: ViewFile[], configs: BoardColumnConfig[], target: string) {
   const columns = buildBoardColumns([entry], { type: 'board', properties: [], columns: configs, staleAfterDays: null, staleFrom: null, colors: {} }, views)

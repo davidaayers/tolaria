@@ -69,8 +69,8 @@ function BoardCardButton({ card, selected, properties, allEntries, typeEntryMap,
 }
 
 function columnCount(column: BoardColumn, t: Translate): string {
-  if (column.limit === null) return String(column.cards.length)
-  return t('board.column.limit', { count: column.cards.length, limit: column.limit })
+  if (column.wipLimit === null) return String(column.cards.length)
+  return t('board.column.limit', { count: column.cards.length, limit: column.wipLimit })
 }
 
 function columnAccent(column: BoardColumn, index: number): string {
@@ -112,7 +112,7 @@ function ColumnHeader({ column, label, index, t }: { column: BoardColumn; label:
       <h3 className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{label}</h3>
       <span
         className={`rounded-full px-2 py-0.5 text-xs font-medium ${countClassName}`}
-        title={column.overLimit ? t('board.column.overLimit', { limit: column.limit ?? 0 }) : undefined}
+        title={column.overLimit ? t('board.column.wipLimit', { limit: column.wipLimit ?? 0 }) : undefined}
       >
         {columnCount(column, t)}
       </span>

@@ -33,8 +33,8 @@ describe('presentationFromViewDefinition', () => {
       staleFrom: 'added',
       colors: { Team: 'purple', ops: 'green', odd: 'chartreuse', bad: 3 },
       columns: [
-        { view: 'backlog.yml', max: 5 },
-        { view: 'this-week.yml', limit: 3 },
+        { view: 'backlog.yml', show: 5 },
+        { view: 'this-week.yml', wipLimit: 3 },
         { view: 'done-this-week.yml', stamp: 'completed' },
       ],
     })))
@@ -45,9 +45,9 @@ describe('presentationFromViewDefinition', () => {
       staleFrom: 'added',
       colors: { team: 'purple', ops: 'green' },
       columns: [
-        { view: 'backlog.yml', limit: null, max: 5, stamp: null },
-        { view: 'this-week.yml', limit: 3, max: null, stamp: null },
-        { view: 'done-this-week.yml', limit: null, max: null, stamp: 'completed' },
+        { view: 'backlog.yml', wipLimit: null, show: 5, stamp: null },
+        { view: 'this-week.yml', wipLimit: 3, show: null, stamp: null },
+        { view: 'done-this-week.yml', wipLimit: null, show: null, stamp: 'completed' },
       ],
     })
   })
@@ -73,12 +73,12 @@ describe('presentationFromViewDefinition', () => {
 
   it('drops malformed and duplicate columns, keeping the first of each view', () => {
     const result = presentationFromViewDefinition(view(board({
-      columns: [{ view: 'a.yml' }, { label: 'no view' }, 'A.yml', { view: ' b.yml ', limit: 0, max: -2, stamp: ' ' }, null],
+      columns: [{ view: 'a.yml' }, { label: 'no view' }, 'A.yml', { view: ' b.yml ', wipLimit: 0, show: -2, stamp: ' ' }, null],
     })))
     expect(result).toMatchObject({
       columns: [
-        { view: 'a.yml', limit: null, max: null, stamp: null },
-        { view: 'b.yml', limit: null, max: null, stamp: null },
+        { view: 'a.yml', wipLimit: null, show: null, stamp: null },
+        { view: 'b.yml', wipLimit: null, show: null, stamp: null },
       ],
     })
   })
@@ -86,9 +86,9 @@ describe('presentationFromViewDefinition', () => {
   it('ignores non-positive or non-integer numbers', () => {
     const result = presentationFromViewDefinition(view(board({
       staleAfterDays: 0,
-      columns: [{ view: 'a.yml', max: 2.5, limit: '3' }],
+      columns: [{ view: 'a.yml', show: 2.5, wipLimit: '3' }],
     })))
-    expect(result).toMatchObject({ staleAfterDays: null, columns: [{ view: 'a.yml', max: null, limit: null }] })
+    expect(result).toMatchObject({ staleAfterDays: null, columns: [{ view: 'a.yml', show: null, wipLimit: null }] })
   })
 
   it('keeps only known accent names in colors, lowercasing the keys, and ignores a non-object value', () => {

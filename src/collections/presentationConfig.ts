@@ -43,8 +43,8 @@ function boardColumn(value: unknown): BoardColumnConfig | null {
   if (!view) return null
   return {
     view,
-    limit: positiveInteger(source.limit),
-    max: positiveInteger(source.max),
+    wipLimit: positiveInteger(source.wipLimit),
+    show: positiveInteger(source.show),
     stamp: nullableString(source.stamp)?.trim() ?? null,
   }
 }

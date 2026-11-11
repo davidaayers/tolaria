@@ -17,10 +17,10 @@ export type BoardChipColor = typeof BOARD_CHIP_COLORS[number]
 export interface BoardColumnConfig {
   /** Filename of the saved View this column shows, for example `tasks-backlog.yml`. */
   view: string
-  /** Work-in-progress limit; warns, never blocks. */
-  limit: number | null
-  /** Cards shown before the "+N more" footer. */
-  max: number | null
+  /** Work-in-progress limit (`wipLimit`); warns, never blocks. */
+  wipLimit: number | null
+  /** Cards shown (`show`) before the "+N more" footer. */
+  show: number | null
   /** Property stamped with today's date when a card enters the column. */
   stamp: string | null
 }

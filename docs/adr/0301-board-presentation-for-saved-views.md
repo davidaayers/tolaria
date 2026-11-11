@@ -33,9 +33,9 @@ presentation:
   staleAfterDays: 180          # optional, off when absent
   colors: { team: purple, ops: green }   # optional chip colour per value
   columns:
-    - { view: tasks-backlog.yml, max: 5 }
-    - { view: tasks-this-week.yml, limit: 5 }
-    - { view: tasks-in-progress.yml, limit: 3 }
+    - { view: tasks-backlog.yml, show: 5 }
+    - { view: tasks-this-week.yml, wipLimit: 5 }
+    - { view: tasks-in-progress.yml, wipLimit: 3 }
     - { view: tasks-waiting.yml }
     - { view: tasks-done-this-week.yml, stamp: completed }
 ```
@@ -43,8 +43,8 @@ presentation:
 - **Columns are saved Views.** A column's heading, icon, colour, filter and sort all come from the referenced View, so the board and the sidebar describe a status once. `columns` is required and ordered; a bare filename is shorthand for `{ view: <filename> }`. A board with no valid column falls back to `list`.
 - **Membership**: a note is in a column when it is in the board View's result and matches the column View's filter. It appears in every column it matches, and in an **Other** column (shown only when non-empty) when it matches none. Nothing in the board View's result set is hidden.
 - **Per column** the board adds only what is about the board, not the View:
-  - `limit`: a work-in-progress limit, shown as `n/limit`. It warns and never blocks.
-  - `max`: the number of cards shown before a "+N more" footer.
+  - `wipLimit`: a work-in-progress limit, shown as `n/limit` and as "WIP limit: n" on hover. It warns and never blocks.
+  - `show`: the number of cards shown before a "+N more" footer. It hides cards but does not change the count.
   - `stamp`: a property set to today's date when a card enters the column and removed when it leaves.
 - **Missing View**: a column whose View does not exist stays in place, labelled with the filename and "View not found", and cannot receive cards. The board View never serves as one of its own columns. When several vaults define the same filename, the board's own vault wins.
 - **Moving a card** sets each condition of the target View that the note does not already meet, and only plain `equals` conditions on a writable property can be set. For `type = Task AND status = done` and a note that is already a Task, only `status` is written. A move is refused, and the column is view-only for that note, when the target View uses an `any` group, a nested group, any other operator, a relationship field, or a built-in field such as `title` or `archived`, or when the writes would not make the note match the View. The result is checked before anything is written.

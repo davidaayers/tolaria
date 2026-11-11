@@ -32,7 +32,8 @@ export interface BoardColumn {
   cards: BoardCard[]
   visibleCards: BoardCard[]
   hiddenCount: number
-  limit: number | null
+  /** The column's WIP limit, when it has one. */
+  wipLimit: number | null
   overLimit: boolean
 }
 
@@ -57,17 +58,17 @@ type ColumnIdentity = Pick<BoardColumn, 'key' | 'label' | 'icon' | 'color' | 'vi
 
 function finishColumn(identity: ColumnIdentity, config: BoardColumnConfig | null, entries: VaultEntry[]): BoardColumn {
   const cards = entries.map((entry) => ({ entry }))
-  const max = config?.max ?? null
-  const limit = config?.limit ?? null
-  const visibleCards = max === null ? cards : cards.slice(0, max)
+  const show = config?.show ?? null
+  const wipLimit = config?.wipLimit ?? null
+  const visibleCards = show === null ? cards : cards.slice(0, show)
   return {
     ...identity,
     config,
     cards,
     visibleCards,
     hiddenCount: cards.length - visibleCards.length,
-    limit,
-    overLimit: limit !== null && cards.length > limit,
+    wipLimit,
+    overLimit: wipLimit !== null && cards.length > wipLimit,
   }
 }
 

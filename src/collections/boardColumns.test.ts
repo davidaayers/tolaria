@@ -11,7 +11,7 @@ function savedView(filename: string, filters: FilterGroup, extra: Partial<ViewFi
 const stageIs = (value: string): FilterGroup => ({ all: [{ field: 'Stage', op: 'equals', value }] })
 
 function col(view: string, overrides: Partial<BoardColumnConfig> = {}): BoardColumnConfig {
-  return { view, limit: null, max: null, stamp: null, ...overrides }
+  return { view, wipLimit: null, show: null, stamp: null, ...overrides }
 }
 
 function board(columns: BoardColumnConfig[]): BoardCollectionPresentationConfig {
@@ -94,9 +94,9 @@ describe('buildBoardColumns', () => {
     expect(titles(buildBoardColumns(entries, board([col('todo.yml')]), VIEWS), 'todo.yml')).toEqual(['c', 'a', 'b'])
   })
 
-  it('caps visible cards at max and reports how many are hidden', () => {
+  it('caps visible cards at show and reports how many are hidden', () => {
     const entries = ['a', 'b', 'c', 'd'].map((t) => note(t, 'todo'))
-    const [todo] = buildBoardColumns(entries, board([col('todo.yml', { max: 3 })]), VIEWS)
+    const [todo] = buildBoardColumns(entries, board([col('todo.yml', { show: 3 })]), VIEWS)
     expect(todo.cards).toHaveLength(4)
     expect(todo.visibleCards.map((c) => c.entry.title)).toEqual(['a', 'b', 'c'])
     expect(todo.hiddenCount).toBe(1)
@@ -105,10 +105,10 @@ describe('buildBoardColumns', () => {
     expect(uncapped.visibleCards).toHaveLength(4)
   })
 
-  it('flags a column over its work-in-progress limit only when the count exceeds it', () => {
+  it('flags a column over its WIP limit only when the count exceeds it', () => {
     const entries = ['a', 'b', 'c'].map((t) => note(t, 'todo'))
-    expect(buildBoardColumns(entries, board([col('todo.yml', { limit: 2 })]), VIEWS)[0]).toMatchObject({ limit: 2, overLimit: true })
-    expect(buildBoardColumns(entries, board([col('todo.yml', { limit: 3 })]), VIEWS)[0].overLimit).toBe(false)
-    expect(buildBoardColumns(entries, board([col('todo.yml')]), VIEWS)[0]).toMatchObject({ limit: null, overLimit: false })
+    expect(buildBoardColumns(entries, board([col('todo.yml', { wipLimit: 2 })]), VIEWS)[0]).toMatchObject({ wipLimit: 2, overLimit: true })
+    expect(buildBoardColumns(entries, board([col('todo.yml', { wipLimit: 3 })]), VIEWS)[0].overLimit).toBe(false)
+    expect(buildBoardColumns(entries, board([col('todo.yml')]), VIEWS)[0]).toMatchObject({ wipLimit: null, overLimit: false })
   })
 })

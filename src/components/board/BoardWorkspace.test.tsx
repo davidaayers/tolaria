@@ -19,7 +19,7 @@ function savedView(filename: string, filters: FilterGroup, extra: Partial<ViewFi
 }
 
 const stageIs = (value: string): FilterGroup => ({ all: [{ field: 'Stage', op: 'equals', value }] })
-const col = (view: string, overrides: Partial<BoardColumnConfig> = {}): BoardColumnConfig => ({ view, limit: null, max: null, stamp: null, ...overrides })
+const col = (view: string, overrides: Partial<BoardColumnConfig> = {}): BoardColumnConfig => ({ view, wipLimit: null, show: null, stamp: null, ...overrides })
 
 const presentation = (columns: BoardColumnConfig[]): BoardCollectionPresentationConfig => ({
   type: 'board', properties: [], columns, staleAfterDays: null, staleFrom: null, colors: {},
