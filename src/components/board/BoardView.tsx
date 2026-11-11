@@ -195,7 +195,7 @@ function BoardColumnRegion({ column, index, t, cardProps, dropState }: {
       aria-label={label}
       data-testid={`board-column-${column.key}`}
       data-drop={dropState}
-      className={`flex max-h-full min-h-0 min-w-56 max-w-80 flex-1 basis-60 flex-col gap-2 rounded-lg bg-muted/40 p-2 transition-colors ${dropClassName(dropState, isOver)}`}
+      className={`flex min-h-0 min-w-56 max-w-80 flex-1 basis-60 flex-col gap-2 rounded-lg bg-muted/40 p-2 transition-colors ${dropClassName(dropState, isOver)}`}
     >
       <ColumnHeader column={column} label={label} index={index} t={t} />
       <ColumnNotes column={column} expanded={expanded} onToggle={() => setExpanded((value) => !value)} t={t} cardProps={cardProps} />
@@ -254,7 +254,7 @@ export function BoardView({ columns, properties, allEntries, typeEntryMap, selec
   const cardProps = { properties, allEntries, typeEntryMap, locale, colors, onSelect: onSelectCard, selectedPath, draggable: drag.draggable }
   return (
     <DndContext sensors={drag.sensors} onDragStart={drag.onDragStart} onDragEnd={drag.onDragEnd} onDragCancel={drag.onDragCancel}>
-      <section aria-label={t('board.region')} className="flex h-full items-start gap-3 overflow-x-auto p-3">
+      <section aria-label={t('board.region')} className="flex h-full items-stretch gap-3 overflow-x-auto p-3">
         {columns.map((column, index) => (
           <BoardColumnRegion key={column.key} column={column} index={index} t={t} cardProps={cardProps} dropState={dropStateFor(column, drag.movable)} />
         ))}
