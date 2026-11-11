@@ -24,6 +24,14 @@ function stringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
 }
 
+function isChipColor(value: unknown): value is BoardChipColor {
+  return typeof value === 'string' && (BOARD_CHIP_COLORS as readonly string[]).includes(value.trim().toLowerCase())
+}
+
+function chipColor(value: unknown): BoardChipColor | null {
+  return isChipColor(value) ? (value.trim().toLowerCase() as BoardChipColor) : null
+}
+
 function positiveInteger(value: unknown): number | null {
   return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : null
 }
@@ -41,6 +49,7 @@ function boardColumn(value: unknown): BoardColumnConfig | null {
     value: columnValue,
     label: nullableString(value.label),
     icon: nullableString(value.icon)?.trim() ?? null,
+    color: chipColor(value.color),
     limit: positiveInteger(value.limit),
     max: positiveInteger(value.max),
     sort: nullableString(value.sort),
@@ -66,15 +75,12 @@ function boardColumns(value: unknown): BoardColumnConfig[] | null {
   return columns
 }
 
-function isChipColor(value: unknown): value is BoardChipColor {
-  return typeof value === 'string' && (BOARD_CHIP_COLORS as readonly string[]).includes(value.toLowerCase())
-}
-
 function chipColors(value: unknown): Record<string, BoardChipColor> {
   if (!isRecord(value)) return {}
   const colors: Record<string, BoardChipColor> = {}
   for (const [key, color] of Object.entries(value)) {
-    if (isChipColor(color)) colors[key.trim().toLowerCase()] = color.toLowerCase() as BoardChipColor
+    const accent = chipColor(color)
+    if (accent) colors[key.trim().toLowerCase()] = accent
   }
   return colors
 }

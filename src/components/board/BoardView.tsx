@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { CSSProperties, MouseEvent } from 'react'
+import type { MouseEvent } from 'react'
 import type { BoardCard, BoardColumn } from '../../collections/boardColumns'
 import { translate, type AppLocale } from '../../lib/i18n'
 import type { VaultEntry } from '../../types'
@@ -73,9 +73,10 @@ function columnCount(column: BoardColumn, t: Translate): string {
   return t('board.column.limit', { count: column.cards.length, limit: column.limit })
 }
 
-function columnAccentStyle(column: BoardColumn, index: number): CSSProperties {
-  if (column.isOther) return { backgroundColor: 'var(--muted-foreground)' }
-  return { backgroundColor: `var(--accent-${BOARD_ACCENTS[index % BOARD_ACCENTS.length]})` }
+function columnAccent(column: BoardColumn, index: number): string {
+  if (column.config?.color) return `var(--accent-${column.config.color})`
+  if (column.isOther) return 'var(--muted-foreground)'
+  return `var(--accent-${BOARD_ACCENTS[index % BOARD_ACCENTS.length]})`
 }
 
 function ColumnIcon({ column, index }: { column: BoardColumn; index: number }) {
@@ -85,7 +86,12 @@ function ColumnIcon({ column, index }: { column: BoardColumn; index: number }) {
   }
   if (icon.kind === 'phosphor') {
     return (
-      <span aria-hidden="true" data-testid={`board-column-icon-${column.key}`} className="shrink-0 text-muted-foreground">
+      <span
+        aria-hidden="true"
+        data-testid={`board-column-icon-${column.key}`}
+        className="shrink-0 text-muted-foreground"
+        style={column.config?.color ? { color: columnAccent(column, index) } : undefined}
+      >
         <icon.Icon width={14} height={14} />
       </span>
     )
@@ -93,7 +99,7 @@ function ColumnIcon({ column, index }: { column: BoardColumn; index: number }) {
   if (icon.kind === 'image') {
     return <img src={icon.src} alt="" aria-hidden="true" data-testid={`board-column-icon-${column.key}`} className="size-3.5 shrink-0 rounded-sm object-cover" />
   }
-  return <span aria-hidden="true" data-testid={`board-column-dot-${column.key}`} className="size-2 shrink-0 rounded-full" style={columnAccentStyle(column, index)} />
+  return <span aria-hidden="true" data-testid={`board-column-dot-${column.key}`} className="size-2 shrink-0 rounded-full" style={{ backgroundColor: columnAccent(column, index) }} />
 }
 
 function ColumnHeader({ column, label, index, t }: { column: BoardColumn; label: string; index: number; t: Translate }) {

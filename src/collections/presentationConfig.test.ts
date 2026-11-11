@@ -30,7 +30,7 @@ describe('presentationFromViewDefinition', () => {
       staleFrom: 'added',
       colors: { Team: 'purple', ops: 'green', odd: 'chartreuse', bad: 3 },
       columns: [
-        { value: 'backlog', label: 'Backlog', icon: 'tray', max: 5 },
+        { value: 'backlog', label: 'Backlog', icon: 'tray', color: 'Gray', max: 5 },
         { value: 'in-progress', limit: 3, sort: 'property:due:asc' },
         { value: 'done', label: 'Done this week', stamp: 'completed', filter },
       ],
@@ -43,9 +43,9 @@ describe('presentationFromViewDefinition', () => {
       staleFrom: 'added',
       colors: { team: 'purple', ops: 'green' },
       columns: [
-        { value: 'backlog', label: 'Backlog', icon: 'tray', limit: null, max: 5, sort: null, filter: null, stamp: null },
-        { value: 'in-progress', label: null, icon: null, limit: 3, max: null, sort: 'property:due:asc', filter: null, stamp: null },
-        { value: 'done', label: 'Done this week', icon: null, limit: null, max: null, sort: null, filter, stamp: 'completed' },
+        { value: 'backlog', label: 'Backlog', icon: 'tray', color: 'gray', limit: null, max: 5, sort: null, filter: null, stamp: null },
+        { value: 'in-progress', label: null, icon: null, color: null, limit: 3, max: null, sort: 'property:due:asc', filter: null, stamp: null },
+        { value: 'done', label: 'Done this week', icon: null, color: null, limit: null, max: null, sort: null, filter, stamp: 'completed' },
       ],
     })
   })
@@ -59,6 +59,15 @@ describe('presentationFromViewDefinition', () => {
     expect(result).toMatchObject({
       columns: [{ icon: '🔥' }, { icon: 'hammer' }, { icon: null }, { icon: null }],
     })
+  })
+
+  it('keeps a known column colour name, lowercased, and ignores anything else', () => {
+    const result = presentationFromViewDefinition(view({
+      type: 'board',
+      groupBy: 'status',
+      columns: [{ value: 'a', color: ' Orange ' }, { value: 'b', color: 'chartreuse' }, { value: 'c', color: 3 }],
+    }))
+    expect(result).toMatchObject({ columns: [{ color: 'orange' }, { color: null }, { color: null }] })
   })
 
   it('derives columns when none are declared', () => {

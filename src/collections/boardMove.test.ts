@@ -8,7 +8,7 @@ import type { BoardCollectionPresentationConfig, BoardColumnConfig } from './col
 const TODAY = '2026-11-10'
 
 function column(value: string, overrides: Partial<BoardColumnConfig> = {}): BoardColumnConfig {
-  return { value, label: null, icon: null, limit: null, max: null, sort: null, filter: null, stamp: null, ...overrides }
+  return { value, label: null, icon: null, color: null, limit: null, max: null, sort: null, filter: null, stamp: null, ...overrides }
 }
 
 function plan(entry: VaultEntry, columns: BoardColumnConfig[], target: string | null, groupBy = 'Stage') {

@@ -46,6 +46,7 @@ presentation:
 - **`columns`**: ordered. `value` matches the property exactly, case-insensitively after trimming. Optional per column:
   - `label`: the column heading.
   - `icon`: an emoji, icon name or image URL shown before the heading (the same values a View's `icon` accepts). Columns without one show a coloured dot.
+  - `color`: an accent colour for the icon or dot (`blue`, `green`, `orange`, `purple`, `teal`, `pink`, `yellow`, `red`, `gray`), the same names a View's `color` takes. Without it the dot gets an automatic colour and an icon stays muted.
   - `limit`: a work-in-progress limit, shown as `n/limit`. It warns and never blocks.
   - `max`: the number of cards shown before a "+N more" footer.
   - `sort`: the same grammar as the View's `sort`.

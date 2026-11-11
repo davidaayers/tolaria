@@ -15,7 +15,7 @@ beforeAll(() => {
 })
 
 function column(value: string, overrides: Partial<BoardColumnConfig> = {}): BoardColumnConfig {
-  return { value, label: null, icon: null, limit: null, max: null, sort: null, filter: null, stamp: null, ...overrides }
+  return { value, label: null, icon: null, color: null, limit: null, max: null, sort: null, filter: null, stamp: null, ...overrides }
 }
 
 const presentation = (columns: BoardColumnConfig[]): BoardCollectionPresentationConfig => ({
