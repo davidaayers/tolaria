@@ -109,7 +109,7 @@ export function QuickOpenPalettePanel(props: QuickOpenPalettePanelProps) {
 		[results, vaultPath],
 	);
 	return (
-		<div className="relative z-10 flex w-[500px] max-w-[90vw] max-h-[400px] flex-col self-start overflow-hidden rounded-xl border border-[var(--border-dialog)] bg-popover shadow-[0_8px_32px_var(--shadow-dialog)]">
+		<div className="relative z-10 flex w-[760px] max-w-[90vw] max-h-[400px] flex-col self-start overflow-hidden rounded-xl border border-[var(--border-dialog)] bg-popover shadow-[0_8px_32px_var(--shadow-dialog)]">
 			<Input
 				ref={inputRef}
 				className="h-auto rounded-none border-0 border-b border-border px-4 py-3 text-[15px] shadow-none focus-visible:border-border focus-visible:ring-0"
