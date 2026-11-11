@@ -2,7 +2,7 @@ import type { FilterCondition, FilterNode, VaultEntry } from '../types'
 import { evaluateView } from '../utils/viewFilters'
 import type { BoardColumn } from './boardColumns'
 
-type Scalar = string | number | boolean
+export type Scalar = string | number | boolean
 
 export interface BoardMovePlan {
   /** Frontmatter properties to set: the target View's unmet conditions, then the column stamp. */
@@ -54,7 +54,7 @@ function isStampedBy(node: FilterNode, stamp: string | null | undefined): boolea
   return !!stamp && 'field' in node && node.field.toLowerCase() === stamp.toLowerCase()
 }
 
-function writesFor(entry: VaultEntry, nodes: FilterNode[], stamp: string | null | undefined): BoardMovePlan['writes'] | null {
+export function writesFor(entry: VaultEntry, nodes: FilterNode[], stamp: string | null | undefined): BoardMovePlan['writes'] | null {
   const writes: BoardMovePlan['writes'] = []
   for (const node of nodes) {
     if (matchesNode(node, entry) || isStampedBy(node, stamp)) continue
@@ -64,7 +64,7 @@ function writesFor(entry: VaultEntry, nodes: FilterNode[], stamp: string | null 
   return writes
 }
 
-function applyWrites(entry: VaultEntry, writes: BoardMovePlan['writes']): VaultEntry {
+export function applyWrites(entry: VaultEntry, writes: BoardMovePlan['writes']): VaultEntry {
   const next: VaultEntry = { ...entry, properties: { ...entry.properties } }
   for (const { key, value } of writes) {
     const lower = key.toLowerCase()
