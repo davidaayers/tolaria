@@ -10,8 +10,9 @@ interface BoardBackBarProps {
 /** Shown above the note list when a board View is displayed as a list, to return to the board. */
 export function BoardBackBar({ locale, onBack }: BoardBackBarProps) {
   return (
-    <div className="flex shrink-0 items-center border-b border-border px-3 py-1.5">
-      <Button type="button" variant="ghost" size="xs" onClick={onBack}>
+    // `.app__note-list > *` gives every child flex: 1; this bar must keep its natural height.
+    <div data-testid="board-back-bar" className="!flex-none border-b border-border px-2 py-1.5">
+      <Button type="button" variant="ghost" size="sm" className="w-full justify-start text-muted-foreground hover:text-foreground" onClick={onBack}>
         <SquaresFour />
         {translate(locale, 'board.backToBoard')}
       </Button>

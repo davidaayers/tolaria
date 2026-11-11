@@ -9,4 +9,9 @@ describe('BoardBackBar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Back to board' }))
     expect(onBack).toHaveBeenCalledTimes(1)
   })
+
+  it('keeps its natural height inside the note-list column, which grows every child', () => {
+    render(<BoardBackBar locale="en" onBack={vi.fn()} />)
+    expect(screen.getByTestId('board-back-bar').className).toContain('!flex-none')
+  })
 })
