@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import type { MouseEvent } from 'react'
+import { Plus } from '@phosphor-icons/react'
+import { useEffect, useRef, useState } from 'react'
+import type { MouseEvent, ReactNode } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -15,6 +16,7 @@ import type { BoardCard, BoardColumn } from '../../collections/boardColumns'
 import { translate, type AppLocale } from '../../lib/i18n'
 import type { VaultEntry } from '../../types'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { resolveNoteIcon } from '../../utils/noteIcon'
 import { BOARD_ACCENTS, dominantChipValues } from './boardCardMeta'
 import { BoardCardChips } from './BoardCardChips'
@@ -34,6 +36,14 @@ export interface BoardViewProps {
   onMoveCard?: (entry: VaultEntry, columnKey: string) => void
   /** Keys of the columns this note can be moved into; other columns refuse the drop. */
   getMovableKeys?: (entry: VaultEntry) => Set<string>
+  /** Paths of the cards passing the quick filter. Null or omitted shows every card. */
+  matchPaths?: Set<string> | null
+  /** Whether a new card can be created in this column. Creating is off unless this and `onCreateCard` are set. */
+  canCreateIn?: (column: BoardColumn) => boolean
+  onCreateCard?: (column: BoardColumn, title: string) => void
+  /** The column showing its new-card title box, if any. */
+  composingKey?: string | null
+  onComposeChange?: (columnKey: string | null) => void
 }
 
 /** How a column responds while a card is being dragged. */
@@ -125,7 +135,7 @@ function ColumnIcon({ column, index }: { column: BoardColumn; index: number }) {
   return <span aria-hidden="true" data-testid={`board-column-dot-${column.key}`} className="size-2 shrink-0 rounded-full" style={{ backgroundColor: columnAccent(column, index) }} />
 }
 
-function ColumnHeader({ column, label, index, t }: { column: BoardColumn; label: string; index: number; t: Translate }) {
+function ColumnHeader({ column, label, index, t, onAdd }: { column: BoardColumn; label: string; index: number; t: Translate; onAdd?: () => void }) {
   const countClassName = column.overLimit
     ? 'bg-[var(--accent-red-light)] text-[var(--accent-red)]'
     : 'bg-muted text-muted-foreground'
@@ -139,32 +149,74 @@ function ColumnHeader({ column, label, index, t }: { column: BoardColumn; label:
       >
         {columnCount(column, t)}
       </span>
+      {onAdd && (
+        <Button type="button" variant="ghost" size="icon" className="size-6 shrink-0" aria-label={t('board.column.addCard', { column: label })} title={t('board.column.addCard', { column: label })} onClick={onAdd}>
+          <Plus width={14} height={14} />
+        </Button>
+      )}
     </header>
   )
 }
 
-function ColumnNotes({ column, expanded, onToggle, t, cardProps }: {
+function CardTitleBox({ label, t, onSubmit, onCancel }: { label: string; t: Translate; onSubmit: (title: string) => void; onCancel: () => void }) {
+  const [title, setTitle] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+  useEffect(() => { inputRef.current?.focus() }, [])
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Escape') onCancel()
+    else if (event.key === 'Enter' && title.trim()) onSubmit(title.trim())
+  }
+  return (
+    <Input
+      ref={inputRef}
+      type="text"
+      aria-label={t('board.create.placeholder')}
+      placeholder={t('board.create.placeholder')}
+      title={label}
+      value={title}
+      className="h-8 bg-background text-sm"
+      onChange={(event) => setTitle(event.target.value)}
+      onKeyDown={handleKeyDown}
+      onBlur={() => { if (!title.trim()) onCancel() }}
+    />
+  )
+}
+
+function visibleCards(column: BoardColumn, expanded: boolean, matchPaths: Set<string> | null | undefined): BoardCard[] {
+  if (matchPaths) return column.cards.filter((card) => matchPaths.has(card.entry.path))
+  return expanded ? column.cards : column.visibleCards
+}
+
+function ColumnMessage({ column, shownCount, filtering, t }: { column: BoardColumn; shownCount: number; filtering: boolean; t: Translate }) {
+  if (column.missing) return <p className="px-1 text-xs text-muted-foreground">{t('board.column.missing')}</p>
+  if (column.cards.length === 0) return <p className="px-1 text-xs text-muted-foreground">{t('board.column.empty')}</p>
+  if (filtering && shownCount === 0) return <p className="px-1 text-xs text-muted-foreground">{t('board.column.noMatches')}</p>
+  return null
+}
+
+function ColumnNotes({ column, expanded, onToggle, t, cardProps, matchPaths, composer }: {
   column: BoardColumn
   expanded: boolean
   onToggle: () => void
   t: Translate
   cardProps: Omit<CardProps, 'card' | 'selected'> & { selectedPath: string | null }
+  matchPaths?: Set<string> | null
+  composer?: ReactNode
 }) {
   const { selectedPath, ...shared } = cardProps
-  const shown = expanded ? column.cards : column.visibleCards
+  const shown = visibleCards(column, expanded, matchPaths)
+  const filtering = Boolean(matchPaths)
   const hiddenValues = dominantChipValues(column.cards.map((card) => card.entry), shared.properties)
   return (
     <div data-testid={`board-column-${column.key}-notes`} className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pb-6 [mask-image:linear-gradient(to_bottom,black_calc(100%-1.5rem),transparent)]">
-      {column.missing && <p className="px-1 text-xs text-muted-foreground">{t('board.column.missing')}</p>}
-      {column.cards.length === 0 && !column.missing && (
-        <p className="px-1 text-xs text-muted-foreground">{t('board.column.empty')}</p>
-      )}
+      {composer}
+      <ColumnMessage column={column} shownCount={shown.length} filtering={filtering} t={t} />
       <div className="flex flex-col gap-2">
         {shown.map((card) => (
           <BoardCardButton key={card.entry.path} card={card} selected={card.entry.path === selectedPath} hiddenValues={hiddenValues} {...shared} />
         ))}
       </div>
-      {column.hiddenCount > 0 && (
+      {!filtering && column.hiddenCount > 0 && (
         <Button type="button" variant="ghost" size="sm" onClick={onToggle}>
           {expanded ? t('board.column.showFewer') : t('board.column.showMore', { count: column.hiddenCount })}
         </Button>
@@ -179,16 +231,32 @@ function dropClassName(dropState: DropState, isOver: boolean): string {
   return ''
 }
 
-function BoardColumnRegion({ column, index, t, cardProps, dropState }: {
+type CreationProps = Pick<BoardViewProps, 'canCreateIn' | 'onCreateCard' | 'composingKey' | 'onComposeChange'>
+
+function BoardColumnRegion({ column, index, t, cardProps, dropState, matchPaths, creation }: {
   column: BoardColumn
   index: number
   dropState: DropState
   t: Translate
   cardProps: Omit<CardProps, 'card' | 'selected'> & { selectedPath: string | null }
+  matchPaths?: Set<string> | null
+  creation: CreationProps
 }) {
   const [expanded, setExpanded] = useState(false)
   const { setNodeRef, isOver } = useDroppable({ id: column.key })
   const label = column.isOther ? t('board.column.other') : column.label
+  const { canCreateIn, onCreateCard, composingKey, onComposeChange } = creation
+  const canCreate = Boolean(onCreateCard && onComposeChange && canCreateIn?.(column))
+  const composer = canCreate && composingKey === column.key
+    ? (
+        <CardTitleBox
+          label={label}
+          t={t}
+          onSubmit={(title) => { onCreateCard?.(column, title); onComposeChange?.(null) }}
+          onCancel={() => onComposeChange?.(null)}
+        />
+      )
+    : null
   return (
     <section
       ref={setNodeRef}
@@ -197,8 +265,8 @@ function BoardColumnRegion({ column, index, t, cardProps, dropState }: {
       data-drop={dropState}
       className={`flex min-h-0 min-w-56 max-w-80 flex-1 basis-60 flex-col gap-2 rounded-lg bg-muted/40 p-2 transition-colors ${dropClassName(dropState, isOver)}`}
     >
-      <ColumnHeader column={column} label={label} index={index} t={t} />
-      <ColumnNotes column={column} expanded={expanded} onToggle={() => setExpanded((value) => !value)} t={t} cardProps={cardProps} />
+      <ColumnHeader column={column} label={label} index={index} t={t} onAdd={canCreate ? () => onComposeChange?.(column.key) : undefined} />
+      <ColumnNotes column={column} expanded={expanded} onToggle={() => setExpanded((value) => !value)} t={t} cardProps={cardProps} matchPaths={matchPaths} composer={composer} />
     </section>
   )
 }
@@ -245,18 +313,19 @@ function useBoardDrag({ columns, onMoveCard, getMovableKeys }: Pick<BoardViewPro
 }
 
 /** Full-width board for a saved View with `presentation.type: board` (ADR-0301). Presentational only. */
-export function BoardView({ columns, properties, allEntries, typeEntryMap, selectedPath, locale, colors, onSelectCard, onMoveCard, getMovableKeys }: BoardViewProps) {
+export function BoardView({ columns, properties, allEntries, typeEntryMap, selectedPath, locale, colors, onSelectCard, onMoveCard, getMovableKeys, matchPaths, canCreateIn, onCreateCard, composingKey, onComposeChange }: BoardViewProps) {
   const t: Translate = (key, values) => translate(locale, key, values)
   const drag = useBoardDrag({ columns, onMoveCard, getMovableKeys })
   if (columns.length === 0) {
     return <div className="flex h-full items-center justify-center text-sm text-muted-foreground">{t('board.empty')}</div>
   }
   const cardProps = { properties, allEntries, typeEntryMap, locale, colors, onSelect: onSelectCard, selectedPath, draggable: drag.draggable }
+  const creation = { canCreateIn, onCreateCard, composingKey, onComposeChange }
   return (
     <DndContext sensors={drag.sensors} onDragStart={drag.onDragStart} onDragEnd={drag.onDragEnd} onDragCancel={drag.onDragCancel}>
       <section aria-label={t('board.region')} className="flex h-full items-stretch gap-3 overflow-x-auto p-3">
         {columns.map((column, index) => (
-          <BoardColumnRegion key={column.key} column={column} index={index} t={t} cardProps={cardProps} dropState={dropStateFor(column, drag.movable)} />
+          <BoardColumnRegion key={column.key} column={column} index={index} t={t} cardProps={cardProps} dropState={dropStateFor(column, drag.movable)} matchPaths={matchPaths} creation={creation} />
         ))}
       </section>
       <DragOverlay>{drag.active ? <DragPreview entry={drag.active} /> : null}</DragOverlay>
