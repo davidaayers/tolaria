@@ -49,7 +49,6 @@ function boardColumn(value: unknown): BoardColumnConfig | null {
     value: columnValue,
     label: nullableString(value.label),
     icon: nullableString(value.icon)?.trim() ?? null,
-    color: chipColor(value.color),
     limit: positiveInteger(value.limit),
     max: positiveInteger(value.max),
     sort: nullableString(value.sort),

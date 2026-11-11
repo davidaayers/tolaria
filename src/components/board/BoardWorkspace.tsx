@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useState } from 'react'
 import { buildBoardColumns, type BoardColumn } from '../../collections/boardColumns'
+import { columnColorsFromViews } from '../../collections/boardColumnViews'
 import { applyBoardMovePlan, planBoardMove } from '../../collections/boardMove'
 import type { BoardCollectionPresentationConfig } from '../../collections/collectionTypes'
 import type { AppLocale } from '../../lib/i18n'
-import type { FrontmatterValue, VaultEntry } from '../../types'
+import type { FrontmatterValue, VaultEntry, ViewFile } from '../../types'
 import { getSortComparator } from '../../utils/noteListHelpers'
 import { parseSortConfig } from '../../utils/noteSort'
 import { buildTypeEntryMap } from '../../utils/typeColors'
@@ -17,6 +18,10 @@ export interface BoardWorkspaceProps {
   /** Notes that passed the saved View's filter. */
   entries: VaultEntry[]
   allEntries: VaultEntry[]
+  /** All saved Views; columns borrow their heading colour from the View that filters on their value. */
+  views?: ViewFile[]
+  /** The board's own View, excluded from colour matching. */
+  boardView?: ViewFile | null
   locale: AppLocale
   onUpdateFrontmatter: (path: string, key: string, value: FrontmatterValue) => Promise<unknown> | void
   onDeleteProperty: (path: string, key: string) => Promise<unknown> | void
@@ -55,13 +60,19 @@ function useBoardMove(props: BoardWorkspaceProps, columns: BoardColumn[]) {
 
 /** Full-width board plus the selected-note side panel for a board saved View (ADR-0301). */
 export function BoardWorkspace(props: BoardWorkspaceProps) {
-  const { presentation, viewSort, entries, allEntries, locale, onOpenInList } = props
+  const { presentation, viewSort, entries, allEntries, views, boardView, locale, onOpenInList } = props
   const [selectedPath, setSelectedPath] = useState<string | null>(null)
   const columns = useMemo(
     () => buildBoardColumns(sortedByView(entries, viewSort), presentation),
     [entries, presentation, viewSort],
   )
   const typeEntryMap = useMemo(() => buildTypeEntryMap(allEntries), [allEntries])
+  const columnColors = useMemo(() => columnColorsFromViews({
+    views: views ?? [],
+    groupBy: presentation.groupBy,
+    columns: columns.map((column) => ({ key: column.key, value: column.value })),
+    exclude: boardView,
+  }), [boardView, columns, presentation.groupBy, views])
   const move = useBoardMove(props, columns)
 
   const selectedColumn = selectedPath ? findColumn(columns, selectedPath) : null
@@ -79,6 +90,7 @@ export function BoardWorkspace(props: BoardWorkspaceProps) {
           selectedPath={selectedPath}
           locale={locale}
           colors={presentation.colors}
+          columnColors={columnColors}
           onSelectCard={(entry) => setSelectedPath(entry.path)}
         />
       </div>

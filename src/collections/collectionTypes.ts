@@ -20,8 +20,6 @@ export interface BoardColumnConfig {
   label: string | null
   /** Emoji, icon name or image URL shown in the column heading (same values as a View's `icon`). */
   icon: string | null
-  /** Accent colour for the heading icon or dot, same names as a View's `color`. */
-  color: BoardChipColor | null
   /** Work-in-progress limit; warns, never blocks. */
   limit: number | null
   /** Cards shown before the "+N more" footer. */

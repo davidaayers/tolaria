@@ -7,6 +7,8 @@ import type { SidebarSelection, VaultEntry, ViewFile } from '../types'
 export interface BoardLayout {
   presentation: BoardCollectionPresentationConfig
   viewSort: string | null
+  /** The board's own saved View, so its columns never take colour from it. */
+  view: ViewFile | null
   /** Notes that passed the saved View's filter. */
   entries: VaultEntry[]
 }
@@ -35,6 +37,7 @@ export function useBoardLayout({ selection, views, entries }: UseBoardLayoutOpti
     return {
       presentation,
       viewSort: collection.view?.definition.sort ?? null,
+      view: collection.view ?? null,
       entries: resolveCollectionEntries(collection, entries, { views }).entries,
     }
   }, [collection, entries, presentation, showBoard, views])

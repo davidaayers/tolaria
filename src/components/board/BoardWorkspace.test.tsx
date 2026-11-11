@@ -15,7 +15,7 @@ beforeAll(() => {
 })
 
 function column(value: string, overrides: Partial<BoardColumnConfig> = {}): BoardColumnConfig {
-  return { value, label: null, icon: null, color: null, limit: null, max: null, sort: null, filter: null, stamp: null, ...overrides }
+  return { value, label: null, icon: null, limit: null, max: null, sort: null, filter: null, stamp: null, ...overrides }
 }
 
 const presentation = (columns: BoardColumnConfig[]): BoardCollectionPresentationConfig => ({
@@ -95,5 +95,27 @@ describe('BoardWorkspace', () => {
     renderWorkspace(sorted, [column('todo')], 'title:asc')
     const cards = within(screen.getByRole('region', { name: 'todo' })).getAllByRole('button').map((b) => b.textContent)
     expect(cards).toEqual(['a', 'b'])
+  })
+})
+
+describe('BoardWorkspace column colours', () => {
+  it('tints a column heading with the colour of the saved View that filters on its value', () => {
+    const boardView = { filename: 'board.yml', definition: { name: 'Board', icon: null, color: 'red', sort: null, filters: { all: [] } } }
+    const doingView = { filename: 'doing.yml', definition: { name: 'Doing', icon: null, color: 'orange', sort: null, filters: { all: [{ field: 'Stage', op: 'equals' as const, value: 'todo' }] } } }
+    render(
+      <BoardWorkspace
+        presentation={presentation([column('todo')])}
+        viewSort={null}
+        entries={[]}
+        allEntries={[]}
+        views={[boardView, doingView]}
+        boardView={boardView}
+        locale="en"
+        onUpdateFrontmatter={vi.fn()}
+        onDeleteProperty={vi.fn()}
+        onOpenInList={vi.fn()}
+      />,
+    )
+    expect(screen.getByTestId('board-column-dot-todo').getAttribute('style')).toContain('--accent-orange')
   })
 })

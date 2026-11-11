@@ -32,6 +32,7 @@ describe('useBoardLayout', () => {
     const { result } = renderLayout({ selection: select('board.yml'), views: [view('board.yml', BOARD, filters)] })
     expect(result.current.board?.presentation).toMatchObject({ type: 'board', groupBy: 'Stage' })
     expect(result.current.board?.viewSort).toBe('title:asc')
+    expect(result.current.board?.view?.filename).toBe('board.yml')
     expect(result.current.board?.entries.map((entry) => entry.title)).toEqual(['a'])
   })
 

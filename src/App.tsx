@@ -1693,6 +1693,8 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
                 viewSort={boardLayout.viewSort}
                 entries={boardLayout.entries}
                 allEntries={visibleEntries}
+                views={vault.views}
+                boardView={boardLayout.view}
                 locale={appLocale}
                 onUpdateFrontmatter={notes.handleUpdateFrontmatter}
                 onDeleteProperty={notes.handleDeleteProperty}

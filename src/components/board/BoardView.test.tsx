@@ -7,7 +7,7 @@ import type { VaultEntry } from '../../types'
 import { BoardView } from './BoardView'
 
 function column(value: string, overrides: Partial<BoardColumnConfig> = {}): BoardColumnConfig {
-  return { value, label: null, icon: null, color: null, limit: null, max: null, sort: null, filter: null, stamp: null, ...overrides }
+  return { value, label: null, icon: null, limit: null, max: null, sort: null, filter: null, stamp: null, ...overrides }
 }
 
 function config(columns: BoardColumnConfig[] | null): BoardCollectionPresentationConfig {
@@ -177,13 +177,13 @@ describe('BoardView', () => {
     expect(screen.queryByTestId('board-column-dot-a')).not.toBeInTheDocument()
   })
 
-  it('tints a column icon and dot with the column colour, and leaves other icons alone', () => {
+  it('tints a column icon and dot with the colour of its matching View, and leaves other icons alone', () => {
     renderBoard([], [
-      column('a', { icon: 'hammer', color: 'orange' }),
-      column('b', { icon: '🔥', color: 'orange' }),
-      column('c', { color: 'green' }),
+      column('a', { icon: 'hammer' }),
+      column('b', { icon: '🔥' }),
+      column('c'),
       column('d', { icon: 'hammer' }),
-    ])
+    ], { columnColors: { a: 'orange', b: 'orange', c: 'green' } })
     expect(screen.getByTestId('board-column-icon-a').getAttribute('style')).toContain('--accent-orange')
     expect(screen.getByTestId('board-column-icon-b').getAttribute('style') ?? '').not.toContain('--accent-orange')
     expect(screen.getByTestId('board-column-dot-c').getAttribute('style')).toContain('--accent-green')
