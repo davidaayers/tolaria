@@ -75,10 +75,11 @@ describe('BoardView', () => {
     renderBoard([note('a', 'todo'), note('b', 'todo'), note('c', 'todo'), note('d', 'done')], [column('todo', { limit: 2 }), column('done', { limit: 2 })])
     const todo = columnRegion('todo')
     expect(within(todo).getByText('3/2')).toBeInTheDocument()
-    expect(within(todo).getByText('Over the limit of 2')).toBeInTheDocument()
+    expect(within(todo).getByTitle('Over the limit of 2')).toHaveTextContent('3/2')
+    expect(within(todo).queryByText('Over the limit of 2')).not.toBeInTheDocument()
     const done = columnRegion('done')
     expect(within(done).getByText('1/2')).toBeInTheDocument()
-    expect(within(done).queryByText(/Over the limit/)).not.toBeInTheDocument()
+    expect(within(done).queryByTitle(/Over the limit/)).not.toBeInTheDocument()
   })
 
   it('caps cards at max, offers "+N more", and expands and collapses it', () => {
@@ -141,5 +142,19 @@ describe('BoardView', () => {
   it('keeps each column in its own scroll area', () => {
     renderBoard(['a', 'b'].map((t) => note(t, 'todo')), [column('todo')])
     expect(screen.getByTestId('board-column-todo-notes').className).toContain('overflow-y-auto')
+  })
+
+  it('hides the chip for the value most cards in a column share, keeping the odd ones out', () => {
+    const entries = ['team', 'team', 'team', 'ops'].map((area, index) =>
+      makeEntry({ path: `/v/${index}.md`, title: `n${index}`, properties: { Stage: 'todo', area } }))
+    renderBoard(entries, [column('todo')], { properties: ['area'] })
+    expect(screen.queryByText('team')).not.toBeInTheDocument()
+    expect(screen.getByText('ops')).toBeInTheDocument()
+  })
+
+  it('lets columns share the width instead of a fixed size, and fades the scroll edge', () => {
+    renderBoard([note('a', 'todo')], [column('todo')])
+    expect(screen.getByTestId('board-column-todo').className).not.toContain('w-72')
+    expect(screen.getByTestId('board-column-todo-notes').className).toContain('mask-image')
   })
 })

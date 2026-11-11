@@ -1,4 +1,5 @@
 import type { TranslationKey } from '../../lib/i18n'
+import type { VaultEntry, VaultPropertyValue } from '../../types'
 
 const DUE_PROPERTY_PATTERN = /^(due|deadline)\b|\b(due|deadline)$/i
 const ISO_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})/
@@ -54,4 +55,43 @@ export function accentForValue(value: string): BoardAccent {
   let hash = 0
   for (const char of text) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
   return BOARD_ACCENTS[hash % BOARD_ACCENTS.length]
+}
+
+const DOMINANT_MIN_CARDS = 3
+const DOMINANT_SHARE = 0.6
+
+export function scalarText(value: VaultPropertyValue | undefined): string | null {
+  if (value === undefined || value === null || Array.isArray(value)) return null
+  const text = String(value).trim()
+  return text.length > 0 ? text : null
+}
+
+export function propertyValue(entry: VaultEntry, name: string): VaultPropertyValue | undefined {
+  const key = Object.keys(entry.properties).find((candidate) => candidate.toLowerCase() === name.toLowerCase())
+  return key === undefined ? undefined : entry.properties[key]
+}
+
+function mostCommon(counts: Map<string, number>): [string, number] | null {
+  let best: [string, number] | null = null
+  for (const entry of counts) if (!best || entry[1] > best[1]) best = entry
+  return best
+}
+
+/**
+ * For each displayed property, the value most cards in a column share. Showing it on every card adds
+ * noise, so cards hide that chip and only the odd ones out keep theirs. Keys are lowercase property names.
+ */
+export function dominantChipValues(entries: VaultEntry[], properties: string[]): Map<string, string> {
+  const result = new Map<string, string>()
+  if (entries.length < DOMINANT_MIN_CARDS) return result
+  for (const name of properties.filter((property) => !isDueProperty(property))) {
+    const counts = new Map<string, number>()
+    for (const entry of entries) {
+      const text = scalarText(propertyValue(entry, name))?.toLowerCase()
+      if (text) counts.set(text, (counts.get(text) ?? 0) + 1)
+    }
+    const top = mostCommon(counts)
+    if (top && top[1] / entries.length >= DOMINANT_SHARE) result.set(name.toLowerCase(), top[0])
+  }
+  return result
 }

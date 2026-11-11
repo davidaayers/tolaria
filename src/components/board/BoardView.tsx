@@ -4,7 +4,7 @@ import type { BoardCard, BoardColumn } from '../../collections/boardColumns'
 import { translate, type AppLocale } from '../../lib/i18n'
 import type { VaultEntry } from '../../types'
 import { Button } from '@/components/ui/button'
-import { BOARD_ACCENTS } from './boardCardMeta'
+import { BOARD_ACCENTS, dominantChipValues } from './boardCardMeta'
 import { BoardCardChips } from './BoardCardChips'
 
 export interface BoardViewProps {
@@ -22,6 +22,7 @@ type Translate = (key: Parameters<typeof translate>[1], values?: Parameters<type
 
 interface CardProps {
   locale: AppLocale
+  hiddenValues?: Map<string, string>
   card: BoardCard
   selected: boolean
   properties: string[]
@@ -30,7 +31,7 @@ interface CardProps {
   onSelect: (entry: VaultEntry) => void
 }
 
-function BoardCardButton({ card, selected, properties, allEntries, typeEntryMap, locale, onSelect }: CardProps) {
+function BoardCardButton({ card, selected, properties, allEntries, typeEntryMap, locale, hiddenValues, onSelect }: CardProps) {
   const { entry } = card
   const openChipTarget = (target: VaultEntry, event: MouseEvent) => {
     event.stopPropagation()
@@ -54,6 +55,7 @@ function BoardCardButton({ card, selected, properties, allEntries, typeEntryMap,
           allEntries={allEntries}
           typeEntryMap={typeEntryMap}
           locale={locale}
+          hiddenValues={hiddenValues}
           onOpenNote={openChipTarget}
         />
       )}
@@ -79,7 +81,12 @@ function ColumnHeader({ column, label, index, t }: { column: BoardColumn; label:
     <header className="flex items-center justify-between gap-2 px-1">
       <span aria-hidden="true" className="size-2 shrink-0 rounded-full" style={columnAccentStyle(column, index)} />
       <h3 className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{label}</h3>
-      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${countClassName}`}>{columnCount(column, t)}</span>
+      <span
+        className={`rounded-full px-2 py-0.5 text-xs font-medium ${countClassName}`}
+        title={column.overLimit ? t('board.column.overLimit', { limit: column.limit ?? 0 }) : undefined}
+      >
+        {columnCount(column, t)}
+      </span>
     </header>
   )
 }
@@ -93,17 +100,15 @@ function ColumnNotes({ column, expanded, onToggle, t, cardProps }: {
 }) {
   const { selectedPath, ...shared } = cardProps
   const shown = expanded ? column.cards : column.visibleCards
+  const hiddenValues = dominantChipValues(column.cards.map((card) => card.entry), shared.properties)
   return (
-    <div data-testid={`board-column-${column.key}-notes`} className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
-      {column.overLimit && (
-        <p role="status" className="px-1 text-xs text-destructive">{t('board.column.overLimit', { limit: column.limit ?? 0 })}</p>
-      )}
+    <div data-testid={`board-column-${column.key}-notes`} className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pb-6 [mask-image:linear-gradient(to_bottom,black_calc(100%-1.5rem),transparent)]">
       {column.cards.length === 0 && column.filteredOutCount === 0 && (
         <p className="px-1 text-xs text-muted-foreground">{t('board.column.empty')}</p>
       )}
       <div className="flex flex-col gap-2">
         {shown.map((card) => (
-          <BoardCardButton key={card.entry.path} card={card} selected={card.entry.path === selectedPath} {...shared} />
+          <BoardCardButton key={card.entry.path} card={card} selected={card.entry.path === selectedPath} hiddenValues={hiddenValues} {...shared} />
         ))}
       </div>
       {column.hiddenCount > 0 && (
@@ -130,7 +135,7 @@ function BoardColumnRegion({ column, index, t, cardProps }: {
     <section
       aria-label={label}
       data-testid={`board-column-${column.key}`}
-      className="flex max-h-full min-h-0 w-72 shrink-0 flex-col gap-2 rounded-lg bg-muted/40 p-2"
+      className="flex max-h-full min-h-0 min-w-56 max-w-80 flex-1 basis-60 flex-col gap-2 rounded-lg bg-muted/40 p-2"
     >
       <ColumnHeader column={column} label={label} index={index} t={t} />
       <ColumnNotes column={column} expanded={expanded} onToggle={() => setExpanded((value) => !value)} t={t} cardProps={cardProps} />
