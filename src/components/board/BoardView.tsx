@@ -173,9 +173,10 @@ function ColumnNotes({ column, expanded, onToggle, t, cardProps }: {
   )
 }
 
-const DROP_STATE_CLASS: Record<'allowed' | 'blocked', string> = {
-  allowed: 'ring-2 ring-primary/60',
-  blocked: 'opacity-50',
+function dropClassName(dropState: DropState, isOver: boolean): string {
+  if (dropState === 'blocked') return 'opacity-50'
+  if (dropState === 'allowed') return isOver ? 'ring-2 ring-primary/60 bg-primary/10' : 'ring-2 ring-primary/60'
+  return ''
 }
 
 function BoardColumnRegion({ column, index, t, cardProps, dropState }: {
@@ -188,15 +189,13 @@ function BoardColumnRegion({ column, index, t, cardProps, dropState }: {
   const [expanded, setExpanded] = useState(false)
   const { setNodeRef, isOver } = useDroppable({ id: column.key })
   const label = column.isOther ? t('board.column.other') : column.label
-  const dropClass = dropState ? DROP_STATE_CLASS[dropState] : ''
-  const overClass = dropState === 'allowed' && isOver ? 'bg-primary/10' : ''
   return (
     <section
       ref={setNodeRef}
       aria-label={label}
       data-testid={`board-column-${column.key}`}
       data-drop={dropState}
-      className={`flex max-h-full min-h-0 min-w-56 max-w-80 flex-1 basis-60 flex-col gap-2 rounded-lg bg-muted/40 p-2 transition-colors ${dropClass} ${overClass}`}
+      className={`flex max-h-full min-h-0 min-w-56 max-w-80 flex-1 basis-60 flex-col gap-2 rounded-lg bg-muted/40 p-2 transition-colors ${dropClassName(dropState, isOver)}`}
     >
       <ColumnHeader column={column} label={label} index={index} t={t} />
       <ColumnNotes column={column} expanded={expanded} onToggle={() => setExpanded((value) => !value)} t={t} cardProps={cardProps} />
