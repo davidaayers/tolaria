@@ -15,6 +15,8 @@ export interface NoteSearchResultItem {
   typeLightColor?: string
   TypeIcon?: ComponentType<SVGAttributes<SVGSVGElement>>
   workspace?: WorkspaceIdentity | null
+  /** Optional vault-relative path shown beside the title, such as `01-journals/weekly.md`. */
+  pathLabel?: string | null
 }
 
 interface NoteSearchListProps<T extends NoteSearchResultItem> {
@@ -78,6 +80,23 @@ function useSearchItemActivation<T extends NoteSearchResultItem>({
   return { activateFromPress, handleClick }
 }
 
+/** Folders shrink with an ellipsis first so the filename stays readable. */
+function NoteSearchPath({ label }: { label: string }) {
+  const slash = label.lastIndexOf('/')
+  const folders = label.slice(0, slash + 1)
+  const filename = label.slice(slash + 1)
+  return (
+    <span
+      data-testid="note-search-item-path"
+      title={label}
+      className="flex min-w-0 max-w-[50%] shrink items-baseline overflow-hidden text-xs text-muted-foreground"
+    >
+      {folders && <span className="truncate">{folders}</span>}
+      <span className="shrink-0">{filename}</span>
+    </span>
+  )
+}
+
 function NoteSearchListItem<T extends NoteSearchResultItem>({
   item,
   index,
@@ -120,6 +139,7 @@ function NoteSearchListItem<T extends NoteSearchResultItem>({
           <NoteTitleIcon icon={item.noteIcon} size={14} testId="note-search-item-icon" />
           <span className="truncate">{item.title}</span>
         </span>
+        {item.pathLabel && <NoteSearchPath label={item.pathLabel} />}
         {(item.noteType || item.workspace) && (
           <span className="ml-2 flex shrink-0 items-center gap-1.5">
             {item.noteType && (

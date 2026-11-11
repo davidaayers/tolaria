@@ -1,11 +1,13 @@
 import { Plus } from "@phosphor-icons/react";
-import type { ReactNode, RefObject } from "react";
+import { useMemo, type ReactNode, type RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { NoteSearchResult } from "../hooks/useNoteSearch";
 import type { AppLocale } from "../lib/i18n";
 import { translate } from "../lib/i18n";
 import type { VaultEntry } from "../types";
+import { relativePathForVaultItem } from "../utils/deepLinks";
+import { vaultPathForEntry } from "../utils/workspaces";
 import { NoteSearchList } from "./NoteSearchList";
 
 interface QuickOpenPalettePanelProps {
@@ -13,6 +15,8 @@ interface QuickOpenPalettePanelProps {
 	query: string;
 	locale: AppLocale;
 	results: NoteSearchResult[];
+	/** Vault root used to show each result's path; omit to hide paths. */
+	vaultPath?: string;
 	selectedIndex: number;
 	isLoading: boolean;
 	onQueryChange: (query: string) => void;
@@ -30,6 +34,19 @@ interface QuickOpenPaletteDialogProps {
 	rootRef: RefObject<HTMLDivElement | null>;
 	onClose: () => void;
 	children: ReactNode;
+}
+
+/** The note's path inside its vault, or null when it adds nothing beyond the title. */
+function quickOpenPathLabel(entry: VaultEntry, vaultPath: string | undefined): string | null {
+	if (!vaultPath) return null;
+	const relative = relativePathForVaultItem({
+		itemPath: entry.path,
+		vaultPath: vaultPathForEntry(entry, vaultPath),
+	});
+	if (!relative) return null;
+	const repeatsTitle =
+		!relative.includes("/") && relative.replace(/\.md$/iu, "") === entry.title;
+	return repeatsTitle ? null : relative;
 }
 
 function quickOpenEmptyMessage(isLoading: boolean, locale: AppLocale): string {
@@ -75,6 +92,7 @@ export function QuickOpenPalettePanel(props: QuickOpenPalettePanelProps) {
 		query,
 		locale,
 		results,
+		vaultPath,
 		selectedIndex,
 		isLoading,
 		onQueryChange,
@@ -82,6 +100,14 @@ export function QuickOpenPalettePanel(props: QuickOpenPalettePanelProps) {
 		onSelectedIndexChange,
 		createAction,
 	} = props;
+	const items = useMemo(
+		() =>
+			results.map((result) => ({
+				...result,
+				pathLabel: quickOpenPathLabel(result.entry, vaultPath),
+			})),
+		[results, vaultPath],
+	);
 	return (
 		<div className="relative z-10 flex w-[500px] max-w-[90vw] max-h-[400px] flex-col self-start overflow-hidden rounded-xl border border-[var(--border-dialog)] bg-popover shadow-[0_8px_32px_var(--shadow-dialog)]">
 			<Input
@@ -93,7 +119,7 @@ export function QuickOpenPalettePanel(props: QuickOpenPalettePanelProps) {
 				onChange={(event) => onQueryChange(event.target.value)}
 			/>
 			<NoteSearchList
-				items={results}
+				items={items}
 				selectedIndex={selectedIndex}
 				getItemKey={(item) => item.entry.path}
 				onItemClick={(item) => onSelect(item.entry)}

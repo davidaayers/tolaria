@@ -18,6 +18,8 @@ import {
 interface QuickOpenPaletteProps {
 	open: boolean;
 	entries: VaultEntry[];
+	/** Vault root; when set, each result shows its path inside the vault. */
+	vaultPath?: string;
 	isLoading?: boolean;
 	onSelect: (entry: VaultEntry) => void;
 	onCreateNote?: (title: string) => unknown | Promise<unknown>;
@@ -148,6 +150,7 @@ export function QuickOpenPalette(props: QuickOpenPaletteProps) {
 
 function QuickOpenPaletteContent({
 	entries,
+	vaultPath,
 	isLoading = false,
 	onSelect,
 	onCreateNote,
@@ -185,6 +188,7 @@ function QuickOpenPaletteContent({
 				query={query}
 				locale={locale}
 				results={results}
+				vaultPath={vaultPath}
 				selectedIndex={selectedIndex}
 				isLoading={isLoading}
 				onQueryChange={setQuery}
