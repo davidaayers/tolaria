@@ -259,3 +259,32 @@ describe('NoteSearchList', () => {
     expect(scrollMock).toHaveBeenCalledWith({ block: 'nearest' })
   })
 })
+
+describe('NoteSearchList path label', () => {
+  it('shows the optional path label next to the title, folders first and the filename last', () => {
+    render(
+      <NoteSearchList
+        items={[{ title: 'Week of ~week~', pathLabel: '01-journals/weekly-template.md' }]}
+        selectedIndex={0}
+        getItemKey={(item) => item.title}
+        onItemClick={vi.fn()}
+      />,
+    )
+    const label = screen.getByTestId('note-search-item-path')
+    expect(label).toHaveTextContent('01-journals/weekly-template.md')
+    expect(label.children[0]).toHaveTextContent('01-journals/')
+    expect(label.children[1]).toHaveTextContent('weekly-template.md')
+  })
+
+  it('shows only a filename when the path has no folder', () => {
+    render(
+      <NoteSearchList items={[{ title: 'Inbox', pathLabel: 'inbox.md' }]} selectedIndex={0} getItemKey={(item) => item.title} onItemClick={vi.fn()} />,
+    )
+    expect(screen.getByTestId('note-search-item-path')).toHaveTextContent(/^inbox\.md$/)
+  })
+
+  it('renders nothing extra when an item has no path label', () => {
+    render(<NoteSearchList items={[{ title: 'Plain' }]} selectedIndex={0} getItemKey={(item) => item.title} onItemClick={vi.fn()} />)
+    expect(screen.queryByTestId('note-search-item-path')).not.toBeInTheDocument()
+  })
+})

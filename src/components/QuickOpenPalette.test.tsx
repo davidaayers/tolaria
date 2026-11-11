@@ -279,3 +279,35 @@ describe('QuickOpenPalette', () => {
     expect(onClose).toHaveBeenCalled()
   })
 })
+
+describe('QuickOpenPalette path labels', () => {
+  const journal = makeEntry({ path: '/vault/01-journals/weekly-template.md', filename: 'weekly-template.md', title: 'Week of ~week~' })
+  const render_ = (list: VaultEntry[], vaultPath?: string) =>
+    render(<QuickOpenPalette open entries={list} vaultPath={vaultPath} onSelect={vi.fn()} onClose={vi.fn()} />)
+
+  it('shows each result’s path inside the vault so a match on the filename is explainable', () => {
+    render_([journal], '/vault')
+    expect(screen.getByTestId('note-search-item-path')).toHaveTextContent('01-journals/weekly-template.md')
+  })
+
+  it('shows a root-level filename that differs from the title', () => {
+    render_([makeEntry({ path: '/vault/weekly.md', filename: 'weekly.md', title: 'Week of ~week~' })], '/vault')
+    expect(screen.getByTestId('note-search-item-path')).toHaveTextContent(/^weekly\.md$/)
+  })
+
+  it('hides the path when it only repeats the title at the vault root', () => {
+    render_([makeEntry({ path: '/vault/Alpha Project.md', filename: 'Alpha Project.md', title: 'Alpha Project' })], '/vault')
+    expect(screen.queryByTestId('note-search-item-path')).not.toBeInTheDocument()
+  })
+
+  it('resolves the path against the note’s own workspace when several vaults are mounted', () => {
+    const workspace = { id: 'team', label: 'Team', alias: 'team', path: '/team', shortLabel: 'TE', color: 'green', icon: null, mounted: true, available: true, defaultForNewNotes: false }
+    render_([makeEntry({ path: '/team/notes/plan.md', filename: 'plan.md', title: 'The Plan', workspace })], '/vault')
+    expect(screen.getByTestId('note-search-item-path')).toHaveTextContent('notes/plan.md')
+  })
+
+  it('shows no path without a vault path to measure from', () => {
+    render_([journal])
+    expect(screen.queryByTestId('note-search-item-path')).not.toBeInTheDocument()
+  })
+})
