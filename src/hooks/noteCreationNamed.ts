@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import type { VaultOption } from "../components/status-bar/types";
 import { trackEvent } from "../lib/telemetry";
 import type { VaultEntry } from "../types";
+import { canonicalFrontmatterKey } from "../utils/systemMetadata";
 import {
 	resolveWikilinkCreationRequest,
 	type WikilinkCreationDestination,
@@ -15,6 +16,7 @@ import {
 	resolveTemplate,
 	resolveTypeInstanceDefaults,
 } from "./noteCreationCore";
+import type { DefaultValue, TypeInstanceDefault } from "./noteCreationDefaults";
 import { requestEditorFocus } from "./useEditorFocus";
 import type { NoteCreationConfig } from "./useNoteCreation";
 
@@ -59,6 +61,31 @@ interface NoteCreationRequest extends CreationDeps {
 	title: string;
 	type: string;
 	creationPath?: "plus_button" | "quick_open" | "wikilink";
+	/** Frontmatter written into the new note; wins over the type's instance defaults. */
+	initialProperties?: Record<string, DefaultValue>;
+	/** False creates the note without opening it in the editor. */
+	openTab?: boolean;
+}
+
+export interface NamedNoteExtras {
+	initialProperties?: Record<string, DefaultValue>;
+	openTab?: boolean;
+}
+
+function withInitialProperties(
+	typeDefaults: TypeInstanceDefault[],
+	initialProperties: Record<string, DefaultValue> | undefined,
+): TypeInstanceDefault[] {
+	const initial: TypeInstanceDefault[] = Object.entries(
+		initialProperties ?? {},
+	).map(([key, value]) => ({ key, value, kind: "property" }));
+	const taken = new Set(initial.map(({ key }) => canonicalFrontmatterKey(key)));
+	return [
+		...initial,
+		...typeDefaults.filter(
+			({ key }) => !taken.has(canonicalFrontmatterKey(key)),
+		),
+	];
 }
 
 async function createNamedNote(options: NoteCreationRequest): Promise<boolean> {
@@ -68,6 +95,8 @@ async function createNamedNote(options: NoteCreationRequest): Promise<boolean> {
 		destination,
 		entries,
 		focusEditor,
+		initialProperties,
+		openTab,
 		persistResolvedEntry,
 		setToastMessage,
 		title,
@@ -76,7 +105,10 @@ async function createNamedNote(options: NoteCreationRequest): Promise<boolean> {
 		vaults,
 	} = options;
 	const template = resolveTemplate({ entries, typeName: type });
-	const defaults = resolveTypeInstanceDefaults({ entries, typeName: type });
+	const defaults = withInitialProperties(
+		resolveTypeInstanceDefaults({ entries, typeName: type }),
+		initialProperties,
+	);
 	const plan = planNewNoteCreation({
 		destination,
 		entries,
@@ -94,8 +126,13 @@ async function createNamedNote(options: NoteCreationRequest): Promise<boolean> {
 	}
 
 	try {
-		await persistResolvedEntry(plan.resolved);
-		if (focusEditor) signalFocusEditor(plan.resolved.entry.path);
+		await persistResolvedEntry(
+			plan.resolved,
+			openTab === false ? { openTab: false } : undefined,
+		);
+		if (focusEditor && openTab !== false) {
+			signalFocusEditor(plan.resolved.entry.path);
+		}
 		if (creationPath) {
 			trackEvent("note_created", {
 				has_type: type !== "Note" ? 1 : 0,
@@ -293,8 +330,10 @@ function useNamedNoteHandlers(options: NamedCreationOptions) {
 			title: string,
 			type: string,
 			creationPath: "plus_button" | "quick_open" = "plus_button",
+			extras?: NamedNoteExtras,
 		) =>
 			createNamedNote({
+				...extras,
 				entries,
 				vaultPath,
 				defaultWorkspacePath,
