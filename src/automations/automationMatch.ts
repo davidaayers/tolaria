@@ -20,8 +20,8 @@ function valueAllowed(allowed: Array<AutomationScalar | null>, value: Automation
 
 export function findChange(event: NoteChangeEvent, property: string) {
   const wanted = propertyKey(property)
-  const key = Object.keys(event.changes).find((candidate) => propertyKey(candidate) === wanted)
-  return key === undefined ? null : event.changes[key]
+  const found = Object.entries(event.changes).find(([candidate]) => propertyKey(candidate) === wanted)
+  return found ? found[1] : null
 }
 
 function entryPassesFilter(definition: AutomationDefinition, entry: VaultEntry | undefined): boolean {

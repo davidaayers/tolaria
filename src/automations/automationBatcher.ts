@@ -13,8 +13,8 @@ function unchanged(change: PropertyChange): boolean {
   return change.old === change.new
 }
 
-function eventFor(path: string, changes: Record<string, PropertyChange>): NoteChangeEvent | null {
-  const real = Object.entries(changes).filter(([, change]) => !unchanged(change))
+function eventFor(path: string, changes: Map<string, PropertyChange>): NoteChangeEvent | null {
+  const real = [...changes.entries()].filter(([, change]) => !unchanged(change))
   return real.length === 0 ? null : { path, changes: Object.fromEntries(real) }
 }
 
@@ -23,7 +23,7 @@ function eventFor(path: string, changes: Record<string, PropertyChange>): NoteCh
  * writes `status` and `completed` triggers automations once, with each key's first old and last new value.
  */
 export function createChangeBatcher(delayMs: number, onFlush: (event: NoteChangeEvent) => void): ChangeBatcher {
-  const pending = new Map<string, Record<string, PropertyChange>>()
+  const pending = new Map<string, Map<string, PropertyChange>>()
   let timer: ReturnType<typeof setTimeout> | null = null
 
   const flush = () => {
@@ -38,8 +38,8 @@ export function createChangeBatcher(delayMs: number, onFlush: (event: NoteChange
 
   return {
     record(path, key, oldValue, newValue) {
-      const changes = pending.get(path) ?? {}
-      changes[key] = { old: key in changes ? changes[key].old : oldValue, new: newValue }
+      const changes = pending.get(path) ?? new Map<string, PropertyChange>()
+      changes.set(key, { old: changes.has(key) ? (changes.get(key)?.old ?? null) : oldValue, new: newValue })
       pending.set(path, changes)
       if (timer) clearTimeout(timer)
       timer = setTimeout(flush, delayMs)

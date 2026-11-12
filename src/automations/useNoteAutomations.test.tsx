@@ -32,7 +32,7 @@ const settle = () => act(async () => { await vi.advanceTimersByTimeAsync(400) })
 describe('useNoteAutomations', () => {
   beforeEach(() => {
     vi.useFakeTimers()
-    Object.values(backend).forEach((fn) => fn.mockReset())
+    Object.values(backend).forEach((fn) => { fn.mockReset() })
     backend.getAutomationTrust.mockResolvedValue({})
     backend.setAutomationTrust.mockResolvedValue(undefined)
   })

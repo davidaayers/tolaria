@@ -19,6 +19,6 @@ export function currentPropertyValue(entry: VaultEntry | undefined, key: string)
   const lower = key.trim().toLowerCase()
   if (lower === 'status') return entry.status
   if (lower === 'type' || lower === 'is_a' || lower === 'isa') return entry.isA
-  const match = Object.keys(entry.properties ?? {}).find((candidate) => candidate.toLowerCase() === lower)
-  return match === undefined ? null : scalarOf(entry.properties[match])
+  const match = Object.entries(entry.properties ?? {}).find(([candidate]) => candidate.toLowerCase() === lower)
+  return match ? scalarOf(match[1]) : null
 }
