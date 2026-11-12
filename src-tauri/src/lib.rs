@@ -9,6 +9,7 @@ mod app_config;
 mod app_icon;
 pub mod app_updater;
 mod asset_scope;
+pub mod automation;
 pub mod claude_cli;
 mod claude_invocation;
 mod cli_agent_runtime;
@@ -384,6 +385,10 @@ macro_rules! app_invoke_handler {
             commands::export_current_webview_pdf,
             commands::resolve_sheet_external_formula_inputs,
             commands::list_views,
+            commands::list_automations,
+            commands::get_automation_trust,
+            commands::set_automation_trust,
+            commands::run_automation_command,
             commands::save_view_cmd,
             commands::delete_view_cmd,
             vault_watcher::start_vault_watcher,
