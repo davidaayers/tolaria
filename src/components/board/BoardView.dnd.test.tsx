@@ -65,6 +65,13 @@ describe('BoardView drag and drop', () => {
     expect(onMoveCard).toHaveBeenCalledWith(expect.objectContaining({ path: alpha.path }), 'done.yml')
   })
 
+  it('keeps the dropped card out of its old column while the move is being saved', () => {
+    const { alpha } = renderBoard()
+    drag(alpha.path)
+    drop(alpha.path, 'done.yml')
+    expect(screen.queryByTestId(`board-card-${alpha.path}`)).not.toBeInTheDocument()
+  })
+
   it('ignores a drop on a column the note cannot be moved into', () => {
     const { onMoveCard, alpha } = renderBoard({ getMovableKeys: () => new Set(['doing.yml']) })
     drag(alpha.path)

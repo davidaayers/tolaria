@@ -292,13 +292,25 @@ function DragPreview({ entry }: { entry: VaultEntry }) {
   )
 }
 
+const MOVE_SETTLE_MS = 2000
+
 /** Drag a card between columns: tracks the card in flight and which columns would accept it. */
 function useBoardDrag({ columns, onMoveCard, getMovableKeys }: Pick<BoardViewProps, 'columns' | 'onMoveCard' | 'getMovableKeys'>) {
   const [activePath, setActivePath] = useState<string | null>(null)
+  const [moved, setMoved] = useState<{ path: string; columns: BoardColumn[] } | null>(null)
+  const movedPath = moved && moved.columns === columns ? moved.path : null
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
   const draggable = Boolean(onMoveCard && getMovableKeys)
   const active = activePath ? findCard(columns, activePath) : null
   const movable = active && getMovableKeys ? getMovableKeys(active) : null
+
+  // The move is written asynchronously. Keep the dropped card out of its old column until the board
+  // re-reads the vault (or a failed move gives up), so it does not reappear there after the drop.
+  useEffect(() => {
+    if (!moved) return
+    const timer = setTimeout(() => setMoved(null), MOVE_SETTLE_MS)
+    return () => clearTimeout(timer)
+  }, [moved])
 
   const onDragStart = ({ active: dragged }: DragStartEvent) => setActivePath(String(dragged.id))
   const onDragCancel = () => setActivePath(null)
@@ -307,9 +319,17 @@ function useBoardDrag({ columns, onMoveCard, getMovableKeys }: Pick<BoardViewPro
     const entry = findCard(columns, String(dropped.id))
     if (!entry || !over || !getMovableKeys) return
     const target = String(over.id)
-    if (getMovableKeys(entry).has(target)) onMoveCard?.(entry, target)
+    if (!getMovableKeys(entry).has(target)) return
+    setMoved({ path: entry.path, columns })
+    onMoveCard?.(entry, target)
   }
-  return { sensors, draggable, active, movable, onDragStart, onDragEnd, onDragCancel }
+  return { sensors, draggable, active, movable, movedPath, onDragStart, onDragEnd, onDragCancel }
+}
+
+function withoutCard(column: BoardColumn, path: string): BoardColumn {
+  if (!column.cards.some((card) => card.entry.path === path)) return column
+  const keep = (card: BoardCard) => card.entry.path !== path
+  return { ...column, cards: column.cards.filter(keep), visibleCards: column.visibleCards.filter(keep) }
 }
 
 /** Full-width board for a saved View with `presentation.type: board` (ADR-0301). Presentational only. */
@@ -325,10 +345,10 @@ export function BoardView({ columns, properties, allEntries, typeEntryMap, selec
     <DndContext sensors={drag.sensors} onDragStart={drag.onDragStart} onDragEnd={drag.onDragEnd} onDragCancel={drag.onDragCancel}>
       <section aria-label={t('board.region')} className="flex h-full items-stretch gap-3 overflow-x-auto p-3">
         {columns.map((column, index) => (
-          <BoardColumnRegion key={column.key} column={column} index={index} t={t} cardProps={cardProps} dropState={dropStateFor(column, drag.movable)} matchPaths={matchPaths} creation={creation} />
+          <BoardColumnRegion key={column.key} column={drag.movedPath ? withoutCard(column, drag.movedPath) : column} index={index} t={t} cardProps={cardProps} dropState={dropStateFor(column, drag.movable)} matchPaths={matchPaths} creation={creation} />
         ))}
       </section>
-      <DragOverlay>{drag.active ? <DragPreview entry={drag.active} /> : null}</DragOverlay>
+      <DragOverlay dropAnimation={drag.movedPath ? null : undefined}>{drag.active ? <DragPreview entry={drag.active} /> : null}</DragOverlay>
     </DndContext>
   )
 }
