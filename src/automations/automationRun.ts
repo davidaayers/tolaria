@@ -25,7 +25,8 @@ export interface AutomationDeps {
   getEntry: (path: string) => VaultEntry | undefined
   setProperty: (path: string, key: string, value: AutomationScalar) => Promise<void>
   removeProperty: (path: string, key: string) => Promise<void>
-  runCommand: (request: CommandRequest) => Promise<CommandResult>
+  /** Run a program for the approved automation file `filename`. */
+  runCommand: (request: CommandRequest, filename: string) => Promise<CommandResult>
   trust: (file: AutomationFile) => AutomationTrust
   /** Ask the user to approve a file; resolves true when approved. Records the answer. */
   askTrust: (file: AutomationFile) => Promise<boolean>
@@ -83,10 +84,10 @@ function commandEnvironment(ctx: TemplateContext): Record<string, string> {
   }
 }
 
-async function runCommandAction(action: Extract<AutomationAction, { kind: 'run' }>, ctx: TemplateContext, deps: AutomationDeps): Promise<CommandResult> {
+async function runCommandAction(action: Extract<AutomationAction, { kind: 'run' }>, ctx: TemplateContext, deps: AutomationDeps, filename: string): Promise<CommandResult> {
   const argv = action.argv.map((part) => expandTemplate(part, ctx))
   if (!argv[0]?.startsWith('/')) throw new Error(`The first element of run must be an absolute path: ${argv[0] ?? ''}`)
-  return deps.runCommand({ argv, timeoutSeconds: action.timeoutSeconds, env: commandEnvironment(ctx) })
+  return deps.runCommand({ argv, timeoutSeconds: action.timeoutSeconds, env: commandEnvironment(ctx) }, filename)
 }
 
 interface ActionOutcome {
@@ -94,7 +95,7 @@ interface ActionOutcome {
   message?: string
 }
 
-async function runAction(action: AutomationAction, ctx: TemplateContext, deps: AutomationDeps): Promise<ActionOutcome> {
+async function runAction(action: AutomationAction, ctx: TemplateContext, deps: AutomationDeps, filename: string): Promise<ActionOutcome> {
   if (action.kind === 'set') {
     for (const [key, value] of Object.entries(action.values)) await deps.setProperty(ctx.notePath, key, expandValue(value, ctx))
     return {}
@@ -103,7 +104,7 @@ async function runAction(action: AutomationAction, ctx: TemplateContext, deps: A
     for (const key of action.keys) await deps.removeProperty(ctx.notePath, key)
     return {}
   }
-  const result = await runCommandAction(action, ctx, deps)
+  const result = await runCommandAction(action, ctx, deps, filename)
   if (!result.ok) return { error: result.error ?? 'The command failed' }
   return result.message ? { message: result.message } : {}
 }
@@ -114,7 +115,7 @@ async function runOne(file: AutomationFile, event: NoteChangeEvent, deps: Automa
   try {
     const ctx = templateContext(file, event, deps.getEntry(event.path), deps)
     for (const action of file.definition.actions) {
-      const outcome = await runAction(action, ctx, deps)
+      const outcome = await runAction(action, ctx, deps, file.filename)
       if (outcome.error) return { name, ok: false, message: null, error: outcome.error }
       message = outcome.message ?? message
     }

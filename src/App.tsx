@@ -34,6 +34,9 @@ import { useRecentVaultWrites, useVaultWatcher } from './hooks/useVaultWatcher'
 import { useSettings } from './hooks/useSettings'
 import { useNoteWidthMode } from './hooks/useNoteWidthMode'
 import { useNoteActions } from './hooks/useNoteActions'
+import { AutomationApprovalDialog } from './automations/AutomationApprovalDialog'
+import type { PropertyWrite } from './automations/propertyChange'
+import { useNoteAutomations } from './automations/useNoteAutomations'
 import { useCommitFlow } from './hooks/useCommitFlow'
 import { useGitRepositories } from './hooks/useGitRepositories'
 import { useEntryActions } from './hooks/useEntryActions'
@@ -570,7 +573,10 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
     if (!noteWindowParams && resolvedPath) vault.markVaultUnavailable(resolvedPath)
   }, [noteWindowParams, resolvedPath, vault])
 
+  const propertyChangedRef = useRef<((write: PropertyWrite) => void) | null>(null)
+  const handlePropertyChanged = useCallback((write: PropertyWrite) => propertyChangedRef.current?.(write), [])
   const notes = useNoteActions({
+    onPropertyChanged: handlePropertyChanged,
     addEntry: vault.addEntry,
     removeEntry: vault.removeEntry,
     entries: visibleEntries,
@@ -597,6 +603,15 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
     onPathRenamed: (oldPath, newPath) => appSave.trackRenamedPath(oldPath, newPath),
     onOpenExternalFile: fileActions.openExternalFile,
   })
+  const automations = useNoteAutomations({
+    vaultPath: resolvedPath,
+    locale: appLocale,
+    entries: visibleEntries,
+    setToastMessage,
+    updateFrontmatter: notes.handleUpdateFrontmatter,
+    deleteProperty: notes.handleDeleteProperty,
+  })
+  useEffect(() => { propertyChangedRef.current = automations.onPropertyChanged }, [automations.onPropertyChanged])
   const {
     handleSelectNote,
     handleReplaceActiveTab,
@@ -1877,6 +1892,7 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
         <FeedbackDialog open={showFeedback} onClose={closeFeedback} locale={appLocale} />
         {platformCapabilities.mcp && <McpSetupDialog open={mcpSetupDialog.open} status={mcpSetupDialog.status} busyAction={mcpSetupDialog.busyAction} manualConfigSnippet={mcpSetupDialog.manualConfigSnippet} opencodeManualConfigSnippet={mcpSetupDialog.opencodeManualConfigSnippet} manualConfigLoading={mcpSetupDialog.manualConfigLoading} manualConfigError={mcpSetupDialog.manualConfigError} locale={appLocale} onClose={mcpSetupDialog.closeDialog} onConnect={mcpSetupDialog.connect} onCopyManualConfig={mcpSetupDialog.copyManualConfig} onCopyOpenCodeManualConfig={mcpSetupDialog.copyOpenCodeManualConfig} onDisconnect={mcpSetupDialog.disconnect} onLoadManualConfig={mcpSetupDialog.loadManualConfig} />}
         <CloneVaultModal key={dialogs.showCloneVault ? 'clone-open' : 'clone-closed'} open={dialogs.showCloneVault} onClose={dialogs.closeCloneVault} onVaultCloned={vaultSwitcher.handleVaultCloned} />
+        <AutomationApprovalDialog file={automations.approvalFile} locale={appLocale} onAnswer={automations.answerApproval} />
         {deleteActions.confirmDelete && (
           <ConfirmDeleteDialog
             open={true}

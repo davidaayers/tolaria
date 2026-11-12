@@ -20,6 +20,7 @@ import { runFrontmatterAndApply, type FrontmatterOpOptions } from './frontmatter
 import { findByNotePath, notePathFilename, notePathsMatch } from '../utils/notePathIdentity'
 import type { VaultOption } from '../components/status-bar/types'
 import { canonicalFrontmatterKey } from '../utils/systemMetadata'
+import { currentPropertyValue, scalarOf, type PropertyWrite } from '../automations/propertyChange'
 import { useActionHistory, type ActionHistoryController, type ActionHistoryEntry } from './useActionHistory'
 
 export interface NoteActionsConfig {
@@ -47,6 +48,8 @@ export interface NoteActionsConfig {
   onMissingActiveVault?: (entry: VaultEntry, error: unknown) => void | Promise<void>
   /** Called after frontmatter is written to disk — used for live-reloading theme CSS vars. */
   onFrontmatterContentChanged?: (path: string, content: string) => void
+  /** Called after each property write succeeds, with its old and new value; feeds note automations (ADR-0302). */
+  onPropertyChanged?: (change: PropertyWrite) => void
   /** Called after a frontmatter mutation is fully persisted, including follow-up renames. */
   onFrontmatterPersisted?: () => void | Promise<void>
   /** Called for note-action owned disk writes so file watchers can ignore app-originated changes. */
@@ -714,6 +717,7 @@ function useFrontmatterActionHandlers(functionOptions: {
 }
 
 function useFrontmatterRunner({
+  onPropertyChanged,
   activeTabPathRef,
   closeAllTabs,
   entries,
@@ -722,6 +726,7 @@ function useFrontmatterRunner({
   updateEntry,
   updateTabContent,
 }: {
+  onPropertyChanged?: NoteActionsConfig['onPropertyChanged']
   activeTabPathRef: MutableRefObject<string | null>
   closeAllTabs: () => void
   entries: VaultEntry[]
@@ -731,8 +736,9 @@ function useFrontmatterRunner({
   updateTabContent: (path: string, newContent: string) => void
 }): RunFrontmatterOp {
   return useCallback(
-    (op, path, key, value, options) =>
-      runFrontmatterAndApply({
+    async (op, path, key, value, options) => {
+      const before = currentPropertyValue(findByNotePath(entries, path), key)
+      const result = await runFrontmatterAndApply({
       op,
       path,
       key,
@@ -755,8 +761,11 @@ function useFrontmatterRunner({
         shouldApply: (p) => activePathGuardAllowsMutation(p, activeTabPathRef, options),
       },
       options,
-    }),
-    [activeTabPathRef, closeAllTabs, entries, reloadVault, setToastMessage, updateEntry, updateTabContent],
+    })
+      if (result !== undefined) onPropertyChanged?.({ path, key, old: before, new: op === 'delete' ? null : scalarOf(value) })
+      return result
+    },
+    [activeTabPathRef, closeAllTabs, entries, onPropertyChanged, reloadVault, setToastMessage, updateEntry, updateTabContent],
   )
 }
 
@@ -940,6 +949,7 @@ export function useNoteActions(config: NoteActionsConfig) {
   const rename = useConfiguredNoteRename({ config, handlePathRenamed, tabMgmt, updateTabContent })
   const handleNavigateWikilink = useWikilinkNavigation({ creation, entries, handleSelectNote, tabMgmt })
   const runFrontmatterOp = useFrontmatterRunner({
+    onPropertyChanged: config.onPropertyChanged,
     activeTabPathRef: tabMgmt.activeTabPathRef,
     closeAllTabs: tabMgmt.closeAllTabs,
     entries,

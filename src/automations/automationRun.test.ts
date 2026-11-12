@@ -111,6 +111,6 @@ describe('runAutomationsForEvent', () => {
     expect(d.runCommand).toHaveBeenCalledWith({
       argv: ['/bin/true'], timeoutSeconds: 30,
       env: { TOLARIA_VAULT: '/vault', TOLARIA_NOTE_PATH: note.path, TOLARIA_PROPERTY: 'status', TOLARIA_OLD: 'doing', TOLARIA_NEW: 'done' },
-    })
+    }, 'a.yml')
   })
 })
