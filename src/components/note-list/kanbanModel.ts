@@ -78,8 +78,9 @@ export function columnId(group: ColumnValue): DragId {
   return `${KANBAN_COLUMN_PREFIX}${group}`
 }
 
-export function cardId(path: NotePath): DragId {
-  return `${KANBAN_CARD_PREFIX}${path}`
+/** A note can sit in several View-driven columns, so the drag id includes the column. */
+export function cardId(path: NotePath, column: ColumnValue = ''): DragId {
+  return `${KANBAN_CARD_PREFIX}${column}:${path}`
 }
 
 export function columnFromId(id: unknown): ColumnValue | undefined {

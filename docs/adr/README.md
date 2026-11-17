@@ -295,3 +295,4 @@ proposed → active → superseded
 | [0297](0297-collaborator-attribution-in-co-authored-by-trailers.md) | Shared edits name their collaborators in Co-authored-by trailers; the identity comes from the access ticket | active |
 | [0299](0299-mobile-native-platform-chrome.md) | Mobile chrome follows native platform conventions while note content and type icons retain desktop parity | active |
 | [0300](0300-optimistic-mobile-workspace-writes-with-per-path-locks-and-rollback.md) | Optimistic mobile workspace writes use per-path locks and selective rollback (complements [0285](0285-mobile-disk-authoritative-note-editing-and-index-reconciliation.md)) | active |
+| [0303](0303-kanban-columns-from-saved-views.md) | Kanban columns can be driven by saved Views (extends [0301](0301-note-collection-layouts.md) and [0302](0302-kanban-layout-owns-the-workspace.md)) | active |

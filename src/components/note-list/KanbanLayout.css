@@ -136,3 +136,7 @@
     transition: none;
   }
 }
+
+.kanban-column--refused {
+  opacity: 0.45;
+}

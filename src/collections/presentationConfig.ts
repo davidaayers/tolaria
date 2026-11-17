@@ -48,7 +48,7 @@ function kanbanColumn(value: unknown): KanbanColumnConfig | null {
 }
 
 /** Columns that reference saved Views; malformed entries and repeated Views are dropped. */
-function kanbanColumns(value: unknown): KanbanColumnConfig[] {
+export function kanbanColumns(value: unknown): KanbanColumnConfig[] {
   if (!Array.isArray(value)) return []
   const seen = new Set<string>()
   const columns: KanbanColumnConfig[] = []

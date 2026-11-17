@@ -2,8 +2,9 @@ import type { MouseEvent, ReactNode } from 'react'
 import { Kanban, ListBullets, type Icon } from '@phosphor-icons/react'
 import { KanbanLayout } from '../components/note-list/KanbanLayout'
 import type { AppLocale, TranslationKey } from '../lib/i18n'
-import type { VaultEntry } from '../types'
-import { COLLECTION_PRESENTATION_KANBAN, COLLECTION_PRESENTATION_LIST, type CollectionPresentationType } from './collectionTypes'
+import type { VaultEntry, ViewFile } from '../types'
+import { COLLECTION_PRESENTATION_KANBAN, COLLECTION_PRESENTATION_LIST, type CollectionPresentationType, type KanbanColumnConfig } from './collectionTypes'
+import type { ViewColumnMovePlan } from './kanbanViewColumnMove'
 
 export interface CollectionLayoutRendererProps {
   listContent: ReactNode
@@ -14,6 +15,14 @@ export interface CollectionLayoutRendererProps {
   properties: string[]
   columnOrder: string[]
   onColumnOrderChange: (order: string[]) => void
+  /** Saved-View columns; when non-empty they replace group-by columns. */
+  columns?: KanbanColumnConfig[]
+  views?: ViewFile[]
+  /** The saved View being shown as a board, which never serves as its own column. */
+  boardView?: ViewFile | null
+  onColumnsChange?: (columns: KanbanColumnConfig[]) => void
+  /** Applies the frontmatter edits that move a card into a View-driven column. */
+  onApplyMove?: (entry: VaultEntry, plan: ViewColumnMovePlan) => Promise<void>
   locale: AppLocale
   typeEntryMap: Record<string, VaultEntry>
   displayPropsOverride?: string[] | null

@@ -1,6 +1,11 @@
+import { useCallback } from 'react'
+import type { ViewColumnMovePlan } from '../../collections/kanbanViewColumnMove'
+import type { VaultEntry } from '../../types'
 import { BulkActionBar } from '../BulkActionBar'
 import { CollectionLayoutBody } from './CollectionLayoutBody'
 import { type CollectionLayoutState, useCollectionLayout } from './useCollectionLayout'
+import { applyViewColumnMovePlan } from '../../collections/kanbanViewColumnMove'
+import { viewFor } from './collectionLayoutConfig'
 import { CollectionLayoutHeaderControls } from './CollectionLayoutControls'
 import { KanbanEditorPanelClose } from './KanbanEditorPanel'
 import { layoutPropertyPicker } from './kanbanCardFieldsPicker'
@@ -391,6 +396,14 @@ function NoteListFooter(
   )
 }
 
+/** Writes a View-column move through the note's frontmatter handlers, one edit at a time. */
+function useViewColumnMoveWriter({ onUpdateNoteProperty, onDeleteNoteProperty }: Pick<NoteListLayoutProps, 'onUpdateNoteProperty' | 'onDeleteNoteProperty'>) {
+  return useCallback(async (entry: VaultEntry, plan: ViewColumnMovePlan) => {
+    if (!onUpdateNoteProperty || !onDeleteNoteProperty) throw new Error('Cannot update note properties here')
+    await applyViewColumnMovePlan(entry.path, plan, { updateProperty: onUpdateNoteProperty, deleteProperty: onDeleteNoteProperty })
+  }, [onDeleteNoteProperty, onUpdateNoteProperty])
+}
+
 function LayoutHeaderControls({ layout, locale }: { layout: CollectionLayoutState; locale: NoteListLayoutProps['locale'] }) {
   if (!layout.enabled) return null
   return (
@@ -402,6 +415,7 @@ function LayoutHeaderControls({ layout, locale }: { layout: CollectionLayoutStat
       triggerClassName={NOTE_LIST_ACTION_BUTTON_CLASSNAME}
       onLayoutChange={layout.changeLayout}
       onGroupByChange={layout.changeGroupBy}
+      columnsFromViews={layout.columns.length > 0}
     />
   )
 }
@@ -414,6 +428,7 @@ export function NoteListLayout({
 }: NoteListLayoutProps) {
   const layout = useCollectionLayout(contentProps)
   const { locale } = contentProps
+  const applyMove = useViewColumnMoveWriter(contentProps)
   return (
     <div
       ref={noteListPanelRef}
@@ -441,6 +456,9 @@ export function NoteListLayout({
           selectedNotePath={contentProps.selectedNotePath}
           onOpen={contentProps.handleClickNote}
           onMove={(entry, property, value) => contentProps.onUpdateTypeSort?.(entry.path, property, value)}
+          views={contentProps.views}
+          boardView={viewFor(contentProps) ?? null}
+          onApplyMove={applyMove}
         />
       </div>
       <NoteListFooter {...contentProps} />

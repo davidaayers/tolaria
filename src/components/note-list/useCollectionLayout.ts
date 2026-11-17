@@ -5,6 +5,7 @@ import {
   COLLECTION_PRESENTATION_KANBAN,
   COLLECTION_PRESENTATION_LIST,
   type CollectionPresentationType,
+  type KanbanColumnConfig,
 } from '../../collections/collectionTypes'
 import { trackEvent } from '../../lib/telemetry'
 import type { SidebarSelection, VaultEntry } from '../../types'
@@ -107,6 +108,7 @@ function useLayoutActions(source: CollectionLayoutSource, key: string, current: 
     changeGroupBy: (groupBy: string) => update({ groupBy }),
     changeCardProperties: (properties: string[] | null) => update({ properties: properties ?? [] }),
     changeColumnOrder: (columnOrder: string[]) => update({ columnOrder }),
+    changeColumns: (columns: KanbanColumnConfig[]) => update({ columns }),
   }
 }
 
@@ -118,7 +120,9 @@ export function supportsLayouts(selection: SidebarSelection): boolean {
 
 function resolveCurrentLayout(source: CollectionLayoutSource, saved: LayoutSettings | undefined): LayoutSettings {
   const current = effectiveLayout(source.presentation, saved)
-  return supportsLayouts(source.selection) ? current : { ...current, layout: COLLECTION_PRESENTATION_LIST }
+  if (!supportsLayouts(source.selection)) return { ...current, layout: COLLECTION_PRESENTATION_LIST }
+  // View-driven columns reference other saved Views, so only a saved View can carry them.
+  return source.selection.kind === 'view' ? current : { ...current, columns: [] }
 }
 
 export function useCollectionLayout(source: CollectionLayoutSource) {

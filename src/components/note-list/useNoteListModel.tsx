@@ -123,6 +123,9 @@ interface UseNoteListContentParams {
   onUpdateInboxNoteListProperties?: (value: string[] | null) => void
   onUpdateViewDefinition?: (filename: string, patch: Partial<ViewDefinition>, rootPath?: string) => void
   onUpdateTypeSort?: (path: string, key: string, value: string | number | boolean | string[] | null) => void
+  /** Writes one frontmatter property; used to move Kanban cards between View-driven columns. */
+  onUpdateNoteProperty?: (path: string, key: string, value: string | number | boolean) => Promise<unknown>
+  onDeleteNoteProperty?: (path: string, key: string) => Promise<unknown>
   updateEntry?: (path: string, patch: Partial<VaultEntry>) => void
   views?: ViewFile[]
   visibleNotesRef?: React.MutableRefObject<VaultEntry[]>
@@ -338,6 +341,9 @@ export interface NoteListProps {
   onBulkArchive?: (paths: string[]) => void
   onBulkDeletePermanently?: (paths: string[]) => void
   onUpdateTypeSort?: (path: string, key: string, value: string | number | boolean | string[] | null) => void
+  /** Writes one frontmatter property; used to move Kanban cards between View-driven columns. */
+  onUpdateNoteProperty?: (path: string, key: string, value: string | number | boolean) => Promise<unknown>
+  onDeleteNoteProperty?: (path: string, key: string) => Promise<unknown>
   updateEntry?: (path: string, patch: Partial<VaultEntry>) => void
   onOpenInNewWindow?: (entry: VaultEntry) => void
   onRenameFilename?: (path: string, newFilenameStem: string) => void
@@ -371,6 +377,8 @@ type NoteListLayoutModelParams = {
   views?: ViewFile[]
   onUpdateViewDefinition?: NoteListProps['onUpdateViewDefinition']
   onUpdateTypeSort?: NoteListProps['onUpdateTypeSort']
+  onUpdateNoteProperty?: NoteListProps['onUpdateNoteProperty']
+  onDeleteNoteProperty?: NoteListProps['onDeleteNoteProperty']
   sidebarCollapsed?: boolean
   loading: boolean
   modifiedFilesError?: string | null
@@ -453,6 +461,8 @@ function noteListInteractionModel(params: NoteListLayoutModelParams) {
     onUpdateViewDefinition: params.onUpdateViewDefinition,
     views: params.views,
     onUpdateTypeSort: params.onUpdateTypeSort,
+    onUpdateNoteProperty: params.onUpdateNoteProperty,
+    onDeleteNoteProperty: params.onDeleteNoteProperty,
     searched: params.content.searched,
     query: params.content.query,
     noteListFilter: params.noteListFilter,

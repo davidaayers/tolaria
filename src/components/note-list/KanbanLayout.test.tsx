@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { makeEntry } from '../../test-utils/noteListTestUtils'
+import type { ViewFile } from '../../types'
 import { KanbanLayout } from './KanbanLayout'
 
 const entries = [
@@ -85,5 +86,54 @@ describe('KanbanLayout', () => {
     expect(screen.getByRole('region', { name: 'Nessun valore, 1 nota' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Doing' })).toHaveAttribute('aria-roledescription', 'colonna')
     expect(screen.getByRole('button', { name: 'Alpha' })).toHaveAttribute('aria-roledescription', 'scheda')
+  })
+
+  describe('with saved-View columns', () => {
+    const stageIs = (value: string): ViewFile['definition']['filters'] => ({ all: [{ field: 'Stage', op: 'equals', value }] })
+    const savedView = (filename: string, name: string, value: string, extra: Partial<ViewFile['definition']> = {}): ViewFile => ({
+      filename, definition: { name, icon: null, color: null, sort: null, filters: stageIs(value), ...extra },
+    })
+    const staged = (title: string, stage: string) => makeEntry({ path: `/vault/${title}.md`, title, properties: { Stage: stage } })
+    const views = [savedView('todo.yml', 'To do', 'todo'), savedView('done.yml', 'Done', 'done')]
+    const col = (view: string, extra = {}) => ({ view, wipLimit: null, show: null, stamp: null, ...extra })
+    const cards = [staged('a', 'todo'), staged('b', 'todo'), staged('c', 'todo'), staged('d', 'done'), staged('e', 'mystery')]
+
+    function renderViewBoard(overrides: Partial<Parameters<typeof KanbanLayout>[0]> = {}) {
+      return renderBoard({ entries: cards, allEntries: cards, columns: [col('todo.yml'), col('done.yml')], views, selectedNotePath: null, ...overrides })
+    }
+
+    it('renders one column per View, plus Other for notes that match none', () => {
+      renderViewBoard()
+      const columns = screen.getAllByTestId('kanban-column')
+      expect(columns.map((column) => column.dataset.kanbanColumn)).toEqual(['todo.yml', 'done.yml', '__other__'])
+      expect(screen.getByRole('region', { name: 'To do, 3 notes' })).toBeInTheDocument()
+      expect(screen.getByRole('region', { name: 'Other, 1 note' })).toBeInTheDocument()
+      expect(screen.getByTestId('kanban-board')).toHaveAccessibleName('Kanban with saved View columns')
+    })
+
+    it('follows the configured column order, not alphabetical order', () => {
+      renderViewBoard({ columns: [col('done.yml'), col('todo.yml')] })
+      expect(screen.getAllByTestId('kanban-column').map((column) => column.dataset.kanbanColumn)).toEqual(['done.yml', 'todo.yml', '__other__'])
+    })
+
+    it('shows a WIP count against the limit and a "+N more" footer for capped columns', () => {
+      renderViewBoard({ columns: [col('todo.yml', { show: 2, wipLimit: 2 })] })
+      const todo = screen.getByRole('region', { name: 'To do, 3 notes' })
+      expect(within(todo).getByText('3/2')).toHaveAttribute('data-over-limit', 'true')
+      expect(within(todo).getByTestId('kanban-more-cards')).toHaveTextContent('+1 more')
+      expect(within(todo).getAllByTestId('kanban-card').length).toBeGreaterThan(0)
+      expect(within(todo).queryByText('c')).not.toBeInTheDocument()
+    })
+
+    it('keeps a column whose View is missing, labelled as such', () => {
+      renderViewBoard({ columns: [col('gone.yml'), col('todo.yml')] })
+      expect(screen.getByRole('region', { name: 'gone (View not found), 0 notes' })).toBeInTheDocument()
+    })
+
+    it('shows a note in every column whose View it matches', () => {
+      const both = [savedView('todo.yml', 'To do', 'todo'), savedView('any.yml', 'Everything', 'todo')]
+      renderViewBoard({ entries: [cards[0]], allEntries: [cards[0]], views: both, columns: [col('todo.yml'), col('any.yml')] })
+      expect(screen.getAllByRole('button', { name: 'a' })).toHaveLength(2)
+    })
   })
 })

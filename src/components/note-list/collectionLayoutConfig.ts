@@ -5,7 +5,9 @@ import {
   COLLECTION_PRESENTATION_LIST,
   type CollectionPresentationConfig,
   type CollectionPresentationType,
+  type KanbanColumnConfig,
 } from '../../collections/collectionTypes'
+import { kanbanColumns } from '../../collections/presentationConfig'
 import type { SidebarSelection, VaultEntry, ViewDefinition, ViewFile } from '../../types'
 
 export interface LayoutSettings {
@@ -13,6 +15,8 @@ export interface LayoutSettings {
   groupBy: string
   properties: string[]
   columnOrder: string[]
+  /** Saved-View columns; when non-empty they replace group-by columns. */
+  columns: KanbanColumnConfig[]
 }
 
 export interface LayoutPersistenceTarget {
@@ -23,7 +27,7 @@ export interface LayoutPersistenceTarget {
   onUpdateViewDefinition?: (filename: string, patch: Partial<ViewDefinition>, rootPath?: string) => void
 }
 
-type StoredKanbanConfig = { groupBy: string | null; properties: string[]; columnOrder: string[] }
+type StoredKanbanConfig = { groupBy: string | null; properties: string[]; columnOrder: string[]; columns?: unknown }
 type ViewPresentation = NonNullable<ViewDefinition['presentation']> & { kanbanConfig?: StoredKanbanConfig }
 
 const DEFAULT_GROUP_BY = 'status'
@@ -39,6 +43,7 @@ function storedKanbanConfig(existing: ViewPresentation): StoredKanbanConfig {
     groupBy: existing.groupBy ?? null,
     properties: existing.properties ?? [],
     columnOrder: existing.columnOrder ?? [],
+    ...(existing.columns === undefined ? {} : { columns: existing.columns }),
   }
 }
 
@@ -83,10 +88,21 @@ function saveVaultLayoutFile(target: LayoutPersistenceTarget, settings: LayoutSe
   }).catch(() => undefined)
 }
 
+/** Writes only the limits a column sets, so saved YAML stays free of nulls. */
+function serializeColumns(columns: KanbanColumnConfig[]) {
+  return columns.map(({ view, show, wipLimit, stamp }) => ({
+    view,
+    ...(show === null ? {} : { show }),
+    ...(wipLimit === null ? {} : { wipLimit }),
+    ...(stamp === null ? {} : { stamp }),
+  }))
+}
+
 function viewPresentationFor(view: ViewFile, settings: LayoutSettings): ViewDefinition['presentation'] {
   if (settings.layout === COLLECTION_PRESENTATION_KANBAN) {
-    const { groupBy, properties, columnOrder } = settings
-    return { type: COLLECTION_PRESENTATION_KANBAN, groupBy, properties, columnOrder }
+    const { groupBy, properties, columnOrder, columns } = settings
+    const base = { type: COLLECTION_PRESENTATION_KANBAN, groupBy, properties, columnOrder } as const
+    return columns.length > 0 ? { ...base, columns: serializeColumns(columns) } : base
   }
   return { type: COLLECTION_PRESENTATION_LIST, sort: view.definition.sort, properties: view.definition.listPropertiesDisplay }
 }
@@ -117,6 +133,7 @@ export function readStoredLayout(value: unknown): LayoutSettings | undefined {
     groupBy: typeof value.groupBy === 'string' ? value.groupBy : DEFAULT_GROUP_BY,
     properties: stringArray(value.properties),
     columnOrder: stringArray(value.columnOrder),
+    columns: kanbanColumns(value.columns),
   }
 }
 
@@ -134,18 +151,20 @@ export function persistedViewLayout(target: LayoutPersistenceTarget): LayoutSett
     groupBy: config.groupBy ?? DEFAULT_GROUP_BY,
     properties: config.properties ?? [],
     columnOrder: config.columnOrder ?? [],
+    columns: kanbanColumns(config.columns),
   }
 }
 
 function presentationLayout(presentation: CollectionPresentationConfig): LayoutSettings {
   if (presentation.type !== COLLECTION_PRESENTATION_KANBAN) {
-    return { layout: presentation.type, groupBy: DEFAULT_GROUP_BY, properties: [], columnOrder: [] }
+    return { layout: presentation.type, groupBy: DEFAULT_GROUP_BY, properties: [], columnOrder: [], columns: [] }
   }
   return {
     layout: COLLECTION_PRESENTATION_KANBAN,
     groupBy: presentation.groupBy ?? DEFAULT_GROUP_BY,
     properties: presentation.properties,
     columnOrder: presentation.columnOrder,
+    columns: presentation.columns,
   }
 }
 

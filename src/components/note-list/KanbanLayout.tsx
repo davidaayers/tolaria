@@ -1,14 +1,18 @@
 import './KanbanLayout.css'
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { DndContext, DragOverlay, type DropAnimation, defaultDropAnimationSideEffects } from '@dnd-kit/core'
 import { horizontalListSortingStrategy, SortableContext } from '@dnd-kit/sortable'
 import type { CollectionLayoutRendererProps } from '../../collections/layoutRegistry'
+import { buildViewColumns } from '../../collections/kanbanViewColumns'
 import { type AppLocale, translate } from '../../lib/i18n'
+import type { VaultEntry } from '../../types'
 import { KanbanCardFace, type KanbanCardContext } from './KanbanCard'
 import { KanbanColumn, KanbanColumnHeader } from './KanbanColumn'
-import { columnId, columnTitle, groupEntries, orderColumns } from './kanbanModel'
-import { type KanbanActiveItem, kanbanCollisionDetection, useKanbanDrag, useKanbanSensors, usePendingMoves } from './useKanbanDrag'
+import { groupBoardColumns, type KanbanBoardColumn, viewBoardColumns } from './kanbanBoardColumns'
+import { columnId, moveColumn } from './kanbanModel'
+import { type KanbanActiveItem, kanbanCollisionDetection, useKanbanDrag, useKanbanSensors } from './useKanbanDrag'
+import { useGroupCardMoves, useViewCardMoves } from './useKanbanMoves'
 
 type KanbanLayoutProps = Omit<CollectionLayoutRendererProps, 'listContent'>
 
@@ -21,64 +25,103 @@ const SETTLE_DROP_ANIMATION: DropAnimation = {
   }),
 }
 
-function KanbanDragPreview({ active, context, locale, cardCount }: { active: KanbanActiveItem; context: KanbanCardContext; locale: AppLocale; cardCount: number }) {
+function KanbanDragPreview({ active, context, locale, columns }: { active: KanbanActiveItem; context: KanbanCardContext; locale: AppLocale; columns: KanbanBoardColumn[] }) {
   if (active?.kind === 'card') {
     return <div className="kanban-drag-lift"><KanbanCardFace entry={active.entry} context={context} className="kanban-card--lifted" /></div>
   }
-  if (active?.kind === 'column') {
-    return (
-      <div className="kanban-drag-lift flex h-10 w-[272px] items-center rounded-xl bg-muted px-3 shadow-lg">
-        <KanbanColumnHeader title={columnTitle(active.group, locale)} count={cardCount} />
-      </div>
-    )
-  }
-  return null
+  const column = active?.kind === 'column' ? columns.find((candidate) => candidate.key === active.group) : undefined
+  if (!column) return null
+  return (
+    <div className="kanban-drag-lift flex h-10 w-[272px] items-center rounded-xl bg-muted px-3 shadow-lg">
+      <KanbanColumnHeader {...column} locale={locale} />
+    </div>
+  )
 }
 
-function activeColumnSize(active: KanbanActiveItem, grouped: Map<string, unknown[]>): number {
-  if (active?.kind !== 'column') return 0
-  return grouped.get(active.group)?.length ?? 0
+interface KanbanBoardProps extends Omit<KanbanLayoutProps, 'columns'> {
+  boardColumns: KanbanBoardColumn[]
+  label: string
+  onCardDrop: (entry: VaultEntry, origin: string, target: string) => boolean
+  onColumnMove: (from: string, to: string) => void
+  /** Whether a dragged card may land in a column; absent means every column accepts it. */
+  canDrop?: (entry: VaultEntry, target: string) => boolean
 }
 
-export function KanbanLayout(props: KanbanLayoutProps) {
-  const { entries, allEntries, groupBy, properties, onOpen, locale, typeEntryMap, displayPropsOverride, selectedNotePath } = props
-  const { columnOrder, onColumnOrderChange, onMove } = props
-  const [pending, setPending] = usePendingMoves(entries, groupBy)
-  const grouped = useMemo(() => groupEntries(entries, groupBy, pending), [entries, groupBy, pending])
-  const columns = useMemo(() => orderColumns(grouped.keys(), columnOrder), [columnOrder, grouped])
+function KanbanBoard({ boardColumns, label, onCardDrop, onColumnMove, canDrop, ...props }: KanbanBoardProps) {
+  const { allEntries, properties, onOpen, locale, typeEntryMap, displayPropsOverride, selectedNotePath } = props
   const sensors = useKanbanSensors()
-  const drag = useKanbanDrag({ groupBy, columns, pending, setPending, onMove, onColumnOrderChange })
+  const drag = useKanbanDrag({ onCardDrop, onColumnMove })
   const context = useMemo<KanbanCardContext>(
     () => ({ cardProperties: properties, allEntries, typeEntryMap, displayPropsOverride, cardRole: translate(locale, 'layout.cardRole'), onOpen }),
     [allEntries, displayPropsOverride, locale, onOpen, properties, typeEntryMap],
   )
-  const activeColumnCount = activeColumnSize(drag.active, grouped)
-  const cardTarget = drag.crossColumnDrop ? drag.overGroup : undefined
+  const draggedCard = drag.active?.kind === 'card' ? drag.active : null
+  const accepts = (target: string) => !draggedCard || !canDrop || target === draggedCard.origin || canDrop(draggedCard.entry, target)
+  const cardTarget = drag.crossColumnDrop && drag.overGroup !== undefined && accepts(drag.overGroup) ? drag.overGroup : undefined
 
   return (
     <DndContext sensors={sensors} collisionDetection={kanbanCollisionDetection} onDragStart={drag.onDragStart} onDragOver={drag.onDragOver} onDragEnd={drag.onDragEnd} onDragCancel={drag.onDragCancel}>
-      <section className="kanban-scroll flex min-h-0 flex-1 gap-3 overflow-x-auto overflow-y-hidden p-3" data-testid="kanban-board" aria-label={translate(locale, 'layout.boardLabel', { property: groupBy })}>
-        <SortableContext items={columns.map(columnId)} strategy={horizontalListSortingStrategy}>
-          {columns.map((group) => (
+      <section className="kanban-scroll flex min-h-0 flex-1 gap-3 overflow-x-auto overflow-y-hidden p-3" data-testid="kanban-board" aria-label={label}>
+        <SortableContext items={boardColumns.map((column) => columnId(column.key))} strategy={horizontalListSortingStrategy}>
+          {boardColumns.map((column) => (
             <KanbanColumn
-              key={group || '__empty'}
-              group={group}
-              cards={grouped.get(group) ?? []}
+              key={column.key || '__empty'}
+              column={column}
               context={context}
               locale={locale}
               selectedNotePath={selectedNotePath}
               droppedPath={drag.droppedPath}
-              isCardTarget={cardTarget === group}
+              isCardTarget={cardTarget === column.key}
+              isCardRefused={!accepts(column.key)}
             />
           ))}
         </SortableContext>
       </section>
       {createPortal(
         <DragOverlay dropAnimation={drag.crossColumnDrop ? null : SETTLE_DROP_ANIMATION} zIndex={12000}>
-          <KanbanDragPreview active={drag.active} context={context} locale={locale} cardCount={activeColumnCount} />
+          <KanbanDragPreview active={drag.active} context={context} locale={locale} columns={boardColumns} />
         </DragOverlay>,
         document.body,
       )}
     </DndContext>
   )
+}
+
+function GroupBoard(props: KanbanLayoutProps) {
+  const { entries, groupBy, columnOrder, onColumnOrderChange, onMove, locale } = props
+  const { pending, onCardDrop } = useGroupCardMoves(entries, groupBy, onMove)
+  const columns = useMemo(() => groupBoardColumns(entries, groupBy, pending, columnOrder, locale), [columnOrder, entries, groupBy, locale, pending])
+  const onColumnMove = useCallback(
+    (from: string, to: string) => onColumnOrderChange(moveColumn(columns.map((column) => column.key), from, to)),
+    [columns, onColumnOrderChange],
+  )
+  return <KanbanBoard {...props} boardColumns={columns} label={translate(locale, 'layout.boardLabel', { property: groupBy })} onCardDrop={onCardDrop} onColumnMove={onColumnMove} />
+}
+
+const NO_VIEWS: NonNullable<KanbanLayoutProps['views']> = []
+const refuseMove = () => Promise.resolve()
+
+function ViewColumnsBoard(props: KanbanLayoutProps) {
+  const { entries, columns: configs = [], views = NO_VIEWS, boardView = null, onColumnsChange, onApplyMove = refuseMove, locale } = props
+  const built = useMemo(() => buildViewColumns(entries, configs, views, boardView), [boardView, configs, entries, views])
+  const { pending, onCardDrop, canDrop } = useViewCardMoves({ columns: built, onApplyMove })
+  const columns = useMemo(() => viewBoardColumns(built, pending, locale), [built, locale, pending])
+  const onColumnMove = useCallback((from: string, to: string) => {
+    const order = moveColumn(configs.map((column) => column.view), from, to)
+    onColumnsChange?.(order.flatMap((view) => configs.filter((column) => column.view === view)))
+  }, [configs, onColumnsChange])
+  return (
+    <KanbanBoard
+      {...props}
+      boardColumns={columns}
+      label={translate(locale, 'layout.boardLabelViews')}
+      onCardDrop={onCardDrop}
+      onColumnMove={onColumnMove}
+      canDrop={canDrop}
+    />
+  )
+}
+
+export function KanbanLayout(props: KanbanLayoutProps) {
+  return props.columns && props.columns.length > 0 ? <ViewColumnsBoard {...props} /> : <GroupBoard {...props} />
 }

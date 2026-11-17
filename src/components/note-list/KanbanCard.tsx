@@ -47,13 +47,15 @@ export function KanbanCardFace({ entry, context, className }: KanbanCardFaceProp
 
 interface KanbanCardProps {
   entry: VaultEntry
+  /** The column the card renders in; a note can sit in several View-driven columns. */
+  columnKey: string
   context: KanbanCardContext
   selected: boolean
   justDropped: boolean
 }
 
-export const KanbanCard = memo(function KanbanCard({ entry, context, selected, justDropped }: KanbanCardProps) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: cardId(entry.path), data: { entry } })
+export const KanbanCard = memo(function KanbanCard({ entry, columnKey, context, selected, justDropped }: KanbanCardProps) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: cardId(entry.path, columnKey), data: { entry, column: columnKey } })
   return (
     <Button
       ref={setNodeRef}

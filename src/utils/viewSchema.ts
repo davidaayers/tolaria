@@ -35,6 +35,8 @@ export interface ViewDefinition {
     groupBy?: string | null
     properties?: string[]
     columnOrder?: string[]
+    /** Kanban columns driven by saved Views; shape validated by presentationFromViewDefinition. */
+    columns?: unknown
   }
 }
 

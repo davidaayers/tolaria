@@ -21,6 +21,8 @@ Key abstractions and domain models in Tolaria.
 
 A registration also declares its label key, icon and extra header controls (`groupBy` for Kanban). `useCollectionLayout` (`src/components/note-list/useCollectionLayout.ts`) resolves the effective settings, persists only real changes and tracks the Kanban editor panel; `CollectionLayoutBody` renders the registered layout. Kanban is split into `kanbanModel.ts` (grouping, column order, optimistic moves), `useKanbanDrag.ts` (dnd-kit sensors and drop handling), `KanbanColumn`, `KanbanCard` (reuses `PropertyChips`) and `KanbanEditorPanelClose`. See ADR 0302.
 
+A saved View's Kanban `presentation` may add an ordered `columns` list of saved-View filenames (`{ view, show, wipLimit, stamp }`), which replaces `groupBy` (ADR 0303). `src/collections/kanbanViewColumns.ts` builds the columns (membership, Other, missing Views, show cap, WIP) and `kanbanViewColumnMove.ts` plans the frontmatter edits for a drop from the target View's filter; `kanbanBoardColumns.ts` adapts both modes to one column shape and `useKanbanMoves.ts` owns the optimistic drops. `KanbanLayout` picks the group-by or View-column board from `columns`.
+
 ## Mobile Note-List Creation
 
 `MobileNoteListPanel` keeps a round create action anchored inside the list body,

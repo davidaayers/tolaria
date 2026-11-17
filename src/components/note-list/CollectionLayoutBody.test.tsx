@@ -14,8 +14,8 @@ import { layoutPropertyPicker } from './kanbanCardFieldsPicker'
 const { invoke } = vi.hoisted(() => ({ invoke: vi.fn() }))
 vi.mock('@tauri-apps/api/core', () => ({ invoke }))
 vi.mock('./KanbanLayout', () => ({
-  KanbanLayout: ({ entries, onMove, onOpen }: { entries: VaultEntry[]; onMove: (entry: VaultEntry, value: string | null) => void; onOpen: (entry: VaultEntry, event: React.MouseEvent) => void }) => (
-    <div data-testid="kanban-board">
+  KanbanLayout: ({ entries, columns, onMove, onOpen }: { entries: VaultEntry[]; columns?: unknown[]; onMove: (entry: VaultEntry, value: string | null) => void; onOpen: (entry: VaultEntry, event: React.MouseEvent) => void }) => (
+    <div data-testid="kanban-board" data-columns={columns?.length ?? 0}>
       <button type="button" onClick={() => onMove(entries[0], null)}>drop first card in No value</button>
       <button type="button" onClick={(event) => onOpen(entries[0], event)}>open first card</button>
     </div>
@@ -44,7 +44,7 @@ function Harness({ onMove = vi.fn(), onOpen = vi.fn(), ...overrides }: HarnessPr
   const picker = layoutPropertyPicker(layout, { scope: 'all', availableProperties: ['priority'], currentDisplay: ['priority'], onSave: vi.fn(), triggerTitle: 'Customize columns' }, 'en')
   return (
     <div data-collection-layout={layout.layout} data-kanban-panel={layout.panel.open ? 'open' : 'closed'} data-testid="layout-root">
-      <CollectionLayoutHeaderControls layout={layout.layout} groupBy={layout.groupBy} groups={layout.groups} locale="en" onLayoutChange={layout.changeLayout} onGroupByChange={layout.changeGroupBy} />
+      <CollectionLayoutHeaderControls layout={layout.layout} groupBy={layout.groupBy} groups={layout.groups} locale="en" onLayoutChange={layout.changeLayout} onGroupByChange={layout.changeGroupBy} columnsFromViews={layout.columns.length > 0} />
       <output data-testid="card-fields">{picker?.currentDisplay.join(',')}</output>
       <button type="button" onClick={() => picker?.onSave(['owner'])}>show owner on cards</button>
       <button type="button" onClick={layout.panel.close}>close panel</button>
@@ -57,6 +57,7 @@ function Harness({ onMove = vi.fn(), onOpen = vi.fn(), ...overrides }: HarnessPr
         typeEntryMap={{}}
         onOpen={(entry) => onOpen(entry)}
         onMove={onMove}
+        views={source.views}
       />
     </div>
   )
@@ -160,6 +161,40 @@ describe('collection layouts', () => {
       await chooseMenuOption('layout-menu-button', 'layout-option-list')
       mount.unmount()
     }
+  })
+
+  it('drives a View board from its saved-View columns, with no group-by control or missing-property notice', () => {
+    const view = savedView({ type: 'kanban', columns: [{ view: 'todo.yml' }, { view: 'done.yml', show: 5 }] })
+    render(<Harness selection={{ kind: 'view', filename: view.filename }} presentation={presentationFromViewDefinition(view.definition)} views={[view]} />)
+    expect(screen.getByTestId('kanban-board')).toHaveAttribute('data-columns', '2')
+    expect(screen.queryByTestId('kanban-missing-property')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('group-by-menu-button')).not.toBeInTheDocument()
+  })
+
+  it('keeps saved-View columns through a List and Kanban round trip', async () => {
+    const view = savedView({ type: 'kanban', columns: [{ view: 'todo.yml', show: 4 }] })
+    const selection: SidebarSelection = { kind: 'view', filename: view.filename }
+    let currentView = view
+    const updateView = vi.fn((_filename: string, patch: Partial<ViewFile['definition']>) => {
+      currentView = { ...currentView, definition: { ...currentView.definition, ...patch } }
+    })
+    const props = () => ({ selection, presentation: presentationFromViewDefinition(currentView.definition), views: [currentView], onUpdateViewDefinition: updateView })
+
+    const first = render(<Harness {...props()} />)
+    await chooseMenuOption('layout-menu-button', 'layout-option-list')
+    first.unmount()
+    render(<Harness {...props()} />)
+    await chooseMenuOption('layout-menu-button', 'layout-option-kanban')
+
+    expect(screen.getByTestId('kanban-board')).toHaveAttribute('data-columns', '1')
+    expect(currentView.definition.presentation).toMatchObject({ type: 'kanban', columns: [{ view: 'todo.yml', show: 4 }] })
+  })
+
+  it('ignores View columns in a layout file for collections that are not saved Views', async () => {
+    invoke.mockResolvedValueOnce({ 'builtin:all': { type: 'kanban', groupBy: 'status', columns: [{ view: 'todo.yml' }] } })
+    render(<Harness />)
+    await waitFor(() => expect(screen.getByTestId('kanban-board')).toBeInTheDocument())
+    expect(screen.getByTestId('kanban-board')).toHaveAttribute('data-columns', '0')
   })
 
   it('uses list properties as card fields until the board has its own', () => {

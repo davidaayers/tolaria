@@ -3,13 +3,14 @@ import type { DragEndEvent, DragOverEvent, DragStartEvent } from '@dnd-kit/core'
 import { describe, expect, it, vi } from 'vitest'
 import { makeEntry } from '../../test-utils/noteListTestUtils'
 import type { VaultEntry } from '../../types'
-import { cardId, columnId } from './kanbanModel'
-import { useKanbanDrag, usePendingMoves } from './useKanbanDrag'
+import { cardId, columnId, moveColumn } from './kanbanModel'
+import { useKanbanDrag } from './useKanbanDrag'
+import { useGroupCardMoves } from './useKanbanMoves'
 
 const alpha = makeEntry({ path: '/vault/a.md', title: 'Alpha', status: 'Doing' })
 
-function startEvent(id: string, entry?: VaultEntry) {
-  return { active: { id, data: { current: entry ? { entry } : {} } } } as unknown as DragStartEvent
+function startEvent(id: string, entry?: VaultEntry, column = 'Doing') {
+  return { active: { id, data: { current: entry ? { entry, column } : {} } } } as unknown as DragStartEvent
 }
 
 function overEvent(group: string | null) {
@@ -20,9 +21,12 @@ function setup(entries: VaultEntry[] = [alpha]) {
   const onMove = vi.fn()
   const onColumnOrderChange = vi.fn()
   const hook = renderHook(({ items }) => {
-    const [pending, setPending] = usePendingMoves(items, 'status')
-    const drag = useKanbanDrag({ groupBy: 'status', columns: ['Doing', 'Done', ''], pending, setPending, onMove, onColumnOrderChange })
-    return { drag, pending }
+    const moves = useGroupCardMoves(items, 'status', onMove)
+    const drag = useKanbanDrag({
+      onCardDrop: moves.onCardDrop,
+      onColumnMove: (from, to) => onColumnOrderChange(moveColumn(['Doing', 'Done', ''], from, to)),
+    })
+    return { drag, pending: moves.pending }
   }, { initialProps: { items: entries } })
   return { hook, onMove, onColumnOrderChange }
 }
@@ -30,7 +34,7 @@ function setup(entries: VaultEntry[] = [alpha]) {
 describe('useKanbanDrag', () => {
   it('drops a card in another column through the property writer and keeps it there optimistically', () => {
     const { hook, onMove } = setup()
-    act(() => hook.result.current.drag.onDragStart(startEvent(cardId(alpha.path), alpha)))
+    act(() => hook.result.current.drag.onDragStart(startEvent(cardId(alpha.path, 'Doing'), alpha)))
     act(() => hook.result.current.drag.onDragOver(overEvent('Done')))
     expect(hook.result.current.drag.crossColumnDrop).toBe(true)
 
@@ -47,11 +51,11 @@ describe('useKanbanDrag', () => {
 
   it('clears the property when a card lands in "No value" and ignores drops on its own column', () => {
     const { hook, onMove } = setup()
-    act(() => hook.result.current.drag.onDragStart(startEvent(cardId(alpha.path), alpha)))
+    act(() => hook.result.current.drag.onDragStart(startEvent(cardId(alpha.path, 'Doing'), alpha)))
     act(() => hook.result.current.drag.onDragEnd(overEvent('Doing')))
     expect(onMove).not.toHaveBeenCalled()
 
-    act(() => hook.result.current.drag.onDragStart(startEvent(cardId(alpha.path), alpha)))
+    act(() => hook.result.current.drag.onDragStart(startEvent(cardId(alpha.path, 'Doing'), alpha)))
     act(() => hook.result.current.drag.onDragEnd(overEvent('')))
     expect(onMove).toHaveBeenCalledWith(alpha, null)
   })
@@ -63,7 +67,7 @@ describe('useKanbanDrag', () => {
     act(() => hook.result.current.drag.onDragEnd(overEvent('')))
     expect(onColumnOrderChange).toHaveBeenCalledWith(['Done', '', 'Doing'])
 
-    act(() => hook.result.current.drag.onDragStart(startEvent(cardId(alpha.path), alpha)))
+    act(() => hook.result.current.drag.onDragStart(startEvent(cardId(alpha.path, 'Doing'), alpha)))
     act(() => hook.result.current.drag.onDragEnd(overEvent(null)))
     act(() => hook.result.current.drag.onDragStart(startEvent('unknown')))
     act(() => hook.result.current.drag.onDragCancel())

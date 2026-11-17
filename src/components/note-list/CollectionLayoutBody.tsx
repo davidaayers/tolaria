@@ -2,7 +2,8 @@ import type { MouseEvent, ReactNode } from 'react'
 import { COLLECTION_PRESENTATION_LIST } from '../../collections/collectionTypes'
 import { getCollectionLayout } from '../../collections/layoutRegistry'
 import { type AppLocale, translate } from '../../lib/i18n'
-import type { VaultEntry } from '../../types'
+import type { ViewColumnMovePlan } from '../../collections/kanbanViewColumnMove'
+import type { VaultEntry, ViewFile } from '../../types'
 import { Button } from '@/components/ui/button'
 import { isWritableGroupKey } from './collectionLayoutConfig'
 import type { CollectionLayoutState } from './useCollectionLayout'
@@ -18,6 +19,9 @@ interface CollectionLayoutBodyProps {
   selectedNotePath?: string | null
   onOpen: (entry: VaultEntry, event: MouseEvent) => void
   onMove: (entry: VaultEntry, property: string, value: string | null) => void
+  views?: ViewFile[]
+  boardView?: ViewFile | null
+  onApplyMove?: (entry: VaultEntry, plan: ViewColumnMovePlan) => Promise<void>
 }
 
 function MissingGroupProperty({ property, locale, onUseList }: { property: string; locale: AppLocale; onUseList: () => void }) {
@@ -32,7 +36,8 @@ function MissingGroupProperty({ property, locale, onUseList }: { property: strin
 export function CollectionLayoutBody(props: CollectionLayoutBodyProps) {
   const { layout, listContent, locale, onOpen, onMove } = props
   const renderer = getCollectionLayout(layout.layout)
-  const missingProperty = renderer.requiredProperties({ groupBy: layout.groupBy })
+  const driveByViews = layout.columns.length > 0
+  const missingProperty = driveByViews ? undefined : renderer.requiredProperties({ groupBy: layout.groupBy })
     .find((property) => !layout.groups.includes(property))
   if (missingProperty) {
     return <MissingGroupProperty property={missingProperty} locale={locale} onUseList={() => layout.changeLayout(COLLECTION_PRESENTATION_LIST)} />
@@ -45,6 +50,11 @@ export function CollectionLayoutBody(props: CollectionLayoutBodyProps) {
     properties: layout.properties,
     columnOrder: layout.columnOrder,
     onColumnOrderChange: layout.changeColumnOrder,
+    columns: layout.columns,
+    onColumnsChange: layout.changeColumns,
+    views: props.views,
+    boardView: props.boardView,
+    onApplyMove: props.onApplyMove,
     locale,
     typeEntryMap: props.typeEntryMap,
     displayPropsOverride: props.displayPropsOverride,

@@ -108,11 +108,13 @@ export interface CollectionLayoutHeaderControlsProps {
   triggerClassName?: string
   onLayoutChange: (layout: CollectionPresentationType) => void
   onGroupByChange: (property: string) => void
+  /** Columns come from saved Views, so there is nothing to group by. */
+  columnsFromViews?: boolean
 }
 
 export function CollectionLayoutHeaderControls(props: CollectionLayoutHeaderControlsProps) {
-  const { layout, groupBy, groups, locale, triggerClassName, onLayoutChange, onGroupByChange } = props
-  const showGroupBy = getCollectionLayout(layout).controls.includes('groupBy')
+  const { layout, groupBy, groups, locale, triggerClassName, onLayoutChange, onGroupByChange, columnsFromViews = false } = props
+  const showGroupBy = getCollectionLayout(layout).controls.includes('groupBy') && !columnsFromViews
   return (
     <>
       <LayoutMenu layout={layout} locale={locale} triggerClassName={triggerClassName} onChange={onLayoutChange} />
