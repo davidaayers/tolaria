@@ -11,11 +11,28 @@ export interface ListCollectionPresentationConfig {
   properties: string[]
 }
 
+export const KANBAN_COLUMN_COLORS = ['blue', 'green', 'orange', 'purple', 'teal', 'pink', 'yellow', 'red', 'gray'] as const
+export type KanbanColumnColor = typeof KANBAN_COLUMN_COLORS[number]
+
+/** One Kanban column driven by a saved View (ADR-0303). */
+export interface KanbanColumnConfig {
+  /** Filename of the saved View this column shows, for example `tasks-backlog.yml`. */
+  view: string
+  /** Work-in-progress limit; warns, never blocks. */
+  wipLimit: number | null
+  /** Cards shown before the "+N more" footer. */
+  show: number | null
+  /** Property stamped with today's date when a card enters the column. */
+  stamp: string | null
+}
+
 export interface KanbanCollectionPresentationConfig {
   type: typeof COLLECTION_PRESENTATION_KANBAN
   groupBy: string | null
   properties: string[]
   columnOrder: string[]
+  /** When non-empty, columns come from these saved Views and `groupBy` is ignored. */
+  columns: KanbanColumnConfig[]
 }
 
 export type CollectionPresentationConfig = ListCollectionPresentationConfig | KanbanCollectionPresentationConfig

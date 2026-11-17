@@ -4,6 +4,7 @@ import {
   COLLECTION_PRESENTATION_LIST,
   type CollectionPresentationConfig,
   type KanbanCollectionPresentationConfig,
+  type KanbanColumnConfig,
   type ListCollectionPresentationConfig,
 } from './collectionTypes'
 
@@ -29,12 +30,44 @@ function listPresentation(source: UnknownRecord, fallback: ListCollectionPresent
   }
 }
 
+function positiveInteger(value: unknown): number | null {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : null
+}
+
+function kanbanColumn(value: unknown): KanbanColumnConfig | null {
+  const source = typeof value === 'string' ? { view: value } : value
+  if (!isRecord(source)) return null
+  const view = nullableString(source.view)?.trim()
+  if (!view) return null
+  return {
+    view,
+    wipLimit: positiveInteger(source.wipLimit),
+    show: positiveInteger(source.show),
+    stamp: nullableString(source.stamp)?.trim() ?? null,
+  }
+}
+
+/** Columns that reference saved Views; malformed entries and repeated Views are dropped. */
+function kanbanColumns(value: unknown): KanbanColumnConfig[] {
+  if (!Array.isArray(value)) return []
+  const seen = new Set<string>()
+  const columns: KanbanColumnConfig[] = []
+  for (const raw of value) {
+    const column = kanbanColumn(raw)
+    if (!column || seen.has(column.view.toLowerCase())) continue
+    seen.add(column.view.toLowerCase())
+    columns.push(column)
+  }
+  return columns
+}
+
 function kanbanPresentation(source: UnknownRecord): KanbanCollectionPresentationConfig {
   return {
     type: COLLECTION_PRESENTATION_KANBAN,
     groupBy: nullableString(source.groupBy),
     properties: stringArray(source.properties),
     columnOrder: stringArray(source.columnOrder),
+    columns: kanbanColumns(source.columns),
   }
 }
 
