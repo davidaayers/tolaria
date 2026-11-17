@@ -92,4 +92,55 @@ describe('relative date view filters', () => {
       makeEntry('April Entry', '2026-04-15'),
     ])).toEqual([])
   })
+
+  describe('period starts', () => {
+    // 2026-04-08 is a Wednesday, so the week starts Monday 2026-04-06 and the month on 2026-04-01.
+    const entries = () => [
+      makeEntry('Sunday', '2026-04-05'),
+      makeEntry('Monday', '2026-04-06'),
+      makeEntry('Wednesday', '2026-04-08'),
+    ]
+    const dateView = (op: 'after' | 'before', value: string): ViewDefinition => ({
+      name: 'Period',
+      icon: null,
+      color: null,
+      sort: null,
+      filters: { all: [{ field: 'date', op, value }] },
+    })
+    const titles = (view: ViewDefinition) => evaluateView(view, entries()).map((entry) => entry.title)
+
+    it('includes a note dated on Monday in "after start of week"', () => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-04-08T12:00:00'))
+
+      expect(titles(dateView('after', 'start of week'))).toEqual(['Monday', 'Wednesday'])
+    })
+
+    it('keeps Monday out of "before start of week"', () => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-04-08T12:00:00'))
+
+      expect(titles(dateView('before', 'start of week'))).toEqual(['Sunday'])
+    })
+
+    it('includes the first of the month in "after start of month"', () => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-04-08T12:00:00'))
+
+      const result = evaluateView(dateView('after', 'start of month'), [
+        makeEntry('March', '2026-03-31'),
+        makeEntry('First', '2026-04-01'),
+      ])
+
+      expect(result.map((entry) => entry.title)).toEqual(['First'])
+    })
+
+    it('keeps "after" strict for other dates', () => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-04-08T12:00:00'))
+
+      expect(titles(dateView('after', 'yesterday'))).toEqual(['Wednesday'])
+      expect(titles(dateView('after', '2026-04-06'))).toEqual(['Wednesday'])
+    })
+  })
 })

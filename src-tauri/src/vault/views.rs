@@ -8,7 +8,7 @@ use std::fs;
 use std::io::ErrorKind;
 use std::path::Path;
 
-use super::view_date_filters::parse_date_filter_timestamp;
+use super::view_date_filters::{is_period_start, parse_date_filter_timestamp};
 use super::view_migration::{is_view_definition_file, migrate_views};
 use super::view_relationships::{evaluate_relationship_op, relationship_candidates};
 use super::view_value_conversions::{
@@ -481,7 +481,11 @@ fn evaluate_scalar_op(
             scalar_date_compare(field_value, cond_value, |field, target| field < target)
         }
         FilterOp::After => {
-            scalar_date_compare(field_value, cond_value, |field, target| field > target)
+            // "after start of week" means "this week so far", so a note dated on the boundary counts.
+            let inclusive = cond_value.is_some_and(is_period_start);
+            scalar_date_compare(field_value, cond_value, |field, target| {
+                field > target || (inclusive && field == target)
+            })
         }
     }
 }

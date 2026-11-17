@@ -564,4 +564,77 @@ filters:
         let result = evaluate_view(&def, &entries);
         assert_eq!(result, vec![0]);
     }
+
+    fn dated_entry(date: chrono::NaiveDate) -> VaultEntry {
+        make_entry(|e| {
+            e.properties.insert(
+                "completed".to_string(),
+                serde_json::json!(date.format("%Y-%m-%d").to_string()),
+            );
+        })
+    }
+
+    fn completed_view(op: &str, value: &str) -> ViewDefinition {
+        let yaml = format!(
+            "name: Period\nfilters:\n  all:\n    - field: completed\n      op: {op}\n      value: {value}\n"
+        );
+        serde_yaml::from_str(&yaml).unwrap()
+    }
+
+    fn week_and_month_starts() -> (chrono::NaiveDate, chrono::NaiveDate) {
+        use chrono::Datelike;
+        let today = chrono::Utc::now().date_naive();
+        let monday = today - chrono::Duration::days(today.weekday().num_days_from_monday() as i64);
+        (monday, today.with_day(1).unwrap())
+    }
+
+    #[test]
+    fn test_after_start_of_week_includes_a_note_dated_on_monday() {
+        let (monday, _) = week_and_month_starts();
+        let entries = vec![
+            dated_entry(monday - chrono::Duration::days(1)),
+            dated_entry(monday),
+        ];
+
+        let result = evaluate_view(&completed_view("after", "start of week"), &entries);
+
+        assert_eq!(result, vec![1]);
+    }
+
+    #[test]
+    fn test_before_start_of_week_excludes_a_note_dated_on_monday() {
+        let (monday, _) = week_and_month_starts();
+        let entries = vec![
+            dated_entry(monday - chrono::Duration::days(1)),
+            dated_entry(monday),
+        ];
+
+        let result = evaluate_view(&completed_view("before", "start of week"), &entries);
+
+        assert_eq!(result, vec![0]);
+    }
+
+    #[test]
+    fn test_after_start_of_month_includes_a_note_dated_on_the_first() {
+        let (_, first) = week_and_month_starts();
+        let entries = vec![
+            dated_entry(first - chrono::Duration::days(1)),
+            dated_entry(first),
+        ];
+
+        let result = evaluate_view(&completed_view("after", "start of month"), &entries);
+
+        assert_eq!(result, vec![1]);
+    }
+
+    #[test]
+    fn test_after_stays_strict_for_other_dates() {
+        let (monday, _) = week_and_month_starts();
+        let entries = vec![dated_entry(monday)];
+        let day = monday.format("%Y-%m-%d").to_string();
+
+        let result = evaluate_view(&completed_view("after", &day), &entries);
+
+        assert!(result.is_empty());
+    }
 }

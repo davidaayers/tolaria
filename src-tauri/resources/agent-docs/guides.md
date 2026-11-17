@@ -23,7 +23,7 @@ Saved views live as files in the vault. They describe filters, sorting, and visi
 
 Custom views can use nested conditions, similar to Notion or Airtable filter groups. Combine `all` and `any` logic when a view needs to answer a more precise question than a single field filter can express.
 
-Date filters support dynamic natural-language values such as `today`, `yesterday`, or `one week ago`. Use these for views that should keep moving over time, such as recent work, stale follow-ups, or upcoming events.
+Date filters support dynamic natural-language values such as `today`, `yesterday`, or `one week ago`. Use these for views that should keep moving over time, such as recent work, stale follow-ups, or upcoming events. `start of week` (Monday) and `start of month` are also supported. `after start of week` includes notes dated on Monday itself, so a "Done this week" view can use `completed after start of week`.
 
 ## Design The Question First
 

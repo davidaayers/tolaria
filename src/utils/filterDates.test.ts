@@ -30,6 +30,21 @@ describe('filterDates', () => {
     expect(parsed && format(parsed, 'yyyy-MM-dd')).toBe('2026-03-31')
   })
 
+  it('parses start of week as the Monday of the reference week', () => {
+    const day = (value: string) => {
+      const parsed = parseDateFilterInput('start of week', new Date(value))
+      return parsed && format(parsed, 'yyyy-MM-dd')
+    }
+    expect(day('2026-04-08T12:00:00')).toBe('2026-04-06')
+    expect(day('2026-04-06T09:00:00')).toBe('2026-04-06')
+    expect(day('2026-04-12T23:00:00')).toBe('2026-04-06')
+  })
+
+  it('parses start of month', () => {
+    const parsed = parseDateFilterInput('Start of Month', new Date('2026-04-08T12:00:00'))
+    expect(parsed && format(parsed, 'yyyy-MM-dd')).toBe('2026-04-01')
+  })
+
   it('returns null for unsupported date phrases', () => {
     expect(parseDateFilterInput('eventually')).toBeNull()
   })

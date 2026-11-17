@@ -1,5 +1,5 @@
 import type { VaultEntry, ViewDefinition, FilterGroup, FilterNode, FilterCondition, VaultPropertyValue } from '../types'
-import { toDateFilterTimestamp } from './filterDates'
+import { isPeriodStartInput, toDateFilterTimestamp } from './filterDates'
 import { compileSafeUserRegex } from './safeRegex'
 import { evaluateArrayFieldCondition, type ViewFilterArrayKind } from './viewFilterArrayFields'
 
@@ -171,7 +171,9 @@ function evaluateDateCondition(cond: FilterCondition, scalar: string | number | 
   if (tsMs == null) return false
   const target = toDateFilterTimestamp(condVal)
   if (target == null) return false
-  return cond.op === 'before' ? tsMs < target : tsMs > target
+  if (cond.op === 'before') return tsMs < target
+  // "after start of week" means "this week so far", so a note dated exactly on the boundary counts.
+  return isPeriodStartInput(condVal) ? tsMs >= target : tsMs > target
 }
 
 type DateTimestamps = {

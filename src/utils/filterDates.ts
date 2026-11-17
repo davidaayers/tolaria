@@ -6,6 +6,8 @@ import {
   isValid,
   parseISO,
   startOfDay,
+  startOfMonth,
+  startOfWeek,
   subDays,
   subMonths,
   subWeeks,
@@ -63,7 +65,19 @@ function shiftRelativeDate(reference: Date, unit: RelativeUnit, amount: number, 
   return (future ? shift.future : shift.past)(reference, amount)
 }
 
+const NAMED_PERIOD_STARTS = new Map<DateFilterInput, (base: Date) => Date>([
+  ['start of week', (base) => startOfWeek(base, { weekStartsOn: 1 })],
+  ['start of month', startOfMonth],
+])
+
+/** True for "start of week" and "start of month": a boundary that "after" counts as part of the period. */
+export function isPeriodStartInput(value: DateFilterInput): boolean {
+  return NAMED_PERIOD_STARTS.has(value.trim().toLowerCase())
+}
+
 function parseNamedRelativeDate(normalized: DateFilterInput, base: Date): Date | null {
+  const periodStart = NAMED_PERIOD_STARTS.get(normalized)
+  if (periodStart) return periodStart(base)
   const offsetDays = NAMED_RELATIVE_DAY_OFFSETS.get(normalized)
   return offsetDays === undefined ? null : addDays(base, offsetDays)
 }
