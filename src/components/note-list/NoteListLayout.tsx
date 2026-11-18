@@ -410,7 +410,7 @@ function useViewColumnCardCreator({ onCreateNoteWithProperties }: Pick<NoteListL
   return useMemo(() => {
     if (!onCreateNoteWithProperties) return undefined
     return (title: string, plan: ViewColumnCreatePlan) => {
-      void onCreateNoteWithProperties(title, plan.type, { initialProperties: plan.properties, openTab: false })
+      void onCreateNoteWithProperties(title, plan.type, { initialProperties: plan.properties, titleHeading: true, openTab: false })
     }
   }, [onCreateNoteWithProperties])
 }

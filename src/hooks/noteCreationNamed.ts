@@ -63,12 +63,15 @@ interface NoteCreationRequest extends CreationDeps {
 	creationPath?: "plus_button" | "quick_open" | "wikilink";
 	/** Frontmatter written into the new note; wins over the type's instance defaults. */
 	initialProperties?: Record<string, DefaultValue>;
+	/** Writes the title as the note's H1. */
+	titleHeading?: boolean;
 	/** False creates the note without opening it in the editor. */
 	openTab?: boolean;
 }
 
 export interface NamedNoteExtras {
 	initialProperties?: Record<string, DefaultValue>;
+	titleHeading?: boolean;
 	openTab?: boolean;
 }
 
@@ -96,6 +99,7 @@ async function createNamedNote(options: NoteCreationRequest): Promise<boolean> {
 		entries,
 		focusEditor,
 		initialProperties,
+		titleHeading,
 		openTab,
 		persistResolvedEntry,
 		setToastMessage,
@@ -119,6 +123,7 @@ async function createNamedNote(options: NoteCreationRequest): Promise<boolean> {
 		vaults,
 		template,
 		defaults,
+		titleHeading,
 	});
 	if (plan.status === "blocked") {
 		setToastMessage(plan.message);

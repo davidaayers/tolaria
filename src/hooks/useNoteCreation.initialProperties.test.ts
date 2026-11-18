@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
 import type { VaultEntry } from '../types'
+import { addMockEntry } from '../mock-tauri'
 import { useNoteCreation } from './useNoteCreation'
 import type { NoteCreationConfig } from './useNoteCreation'
 
@@ -60,6 +61,19 @@ describe('handleCreateNote with initial properties', () => {
     await create([], 'Quiet', 'Task', 'plus_button', { openTab: false })
     expect(addEntry).toHaveBeenCalledTimes(1)
     expect(openTabWithContent).not.toHaveBeenCalled()
+  })
+
+  it('writes the title as the H1 when asked, and marks the entry as having one', async () => {
+    await create([], 'Write plan', 'Task', 'plus_button', { titleHeading: true, openTab: false })
+    const entry = addEntry.mock.calls[0][0] as VaultEntry
+    expect(entry.hasH1).toBe(true)
+    expect(vi.mocked(addMockEntry).mock.calls[0][1]).toContain('\n# Write plan\n')
+  })
+
+  it('leaves the body without an H1 by default', async () => {
+    await create([], 'Quiet', 'Task', 'plus_button', { openTab: false })
+    expect(vi.mocked(addMockEntry).mock.calls[0][1]).not.toContain('# Quiet')
+    expect((addEntry.mock.calls[0][0] as VaultEntry).hasH1).toBe(false)
   })
 
   it('still opens the note by default, with no extra options', async () => {

@@ -11,6 +11,8 @@ export interface NoteContentParams {
 	format?: NoteFormat;
 	template?: string | null;
 	initialEmptyHeading?: boolean;
+	/** Writes the title as the body's first `# ` heading. */
+	titleHeading?: boolean;
 	defaults?: TypeInstanceDefault[];
 }
 
@@ -30,12 +32,17 @@ export function buildNoteBody({
 	format,
 	template,
 	initialEmptyHeading,
+	title,
+	titleHeading,
 }: Pick<
 	NoteContentParams,
-	"format" | "template" | "initialEmptyHeading"
+	"format" | "template" | "initialEmptyHeading" | "title" | "titleHeading"
 >): string {
 	const templateBody = template ? `\n${template}` : "";
 	if (format === NOTE_FORMAT_SHEET) return templateBody;
+	if (titleHeading && title && !template?.trimStart().startsWith("# ")) {
+		return `\n# ${title}\n${template ? `\n${template}` : "\n"}`;
+	}
 	if (!initialEmptyHeading) return templateBody;
 	if (template?.trimStart().startsWith("# ")) return templateBody;
 	if (!template) return "\n# \n\n";

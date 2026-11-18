@@ -126,6 +126,7 @@ export function buildNoteContent({
 	format = NOTE_FORMAT_TEXT,
 	template,
 	initialEmptyHeading = false,
+	titleHeading = false,
 	defaults = [],
 }: NoteContentParams): string {
 	const lines = ["---"];
@@ -136,7 +137,7 @@ export function buildNoteContent({
 	if (status) lines.push(`status: ${status}`);
 	appendDefaultFrontmatterLines(lines, defaults);
 	lines.push("---");
-	const body = buildNoteBody({ format, template, initialEmptyHeading });
+	const body = buildNoteBody({ format, template, initialEmptyHeading, title, titleHeading });
 	return `${lines.join("\n")}\n${body}`;
 }
 
@@ -150,6 +151,8 @@ export interface NewNoteParams {
 	vaults?: readonly VaultOption[];
 	template?: string | null;
 	defaults?: TypeInstanceDefault[];
+	/** Writes the title as the note's H1. */
+	titleHeading?: boolean;
 }
 
 export function resolveNewNote(options: NewNoteParams): {
@@ -166,6 +169,7 @@ export function resolveNewNote(options: NewNoteParams): {
 		vaults = [],
 		template,
 		defaults = [],
+		titleHeading = false,
 	} = options;
 	const creationVaultPath =
 		destination?.vaultPath ??
@@ -181,6 +185,7 @@ export function resolveNewNote(options: NewNoteParams): {
 			type,
 			status,
 		}),
+		hasH1: titleHeading,
 		workspace: workspaceForVaultPath(
 			creationVaultPath,
 			vaults,
@@ -196,6 +201,7 @@ export function resolveNewNote(options: NewNoteParams): {
 			format,
 			template,
 			defaults,
+			titleHeading,
 		}),
 		defaults,
 	});
@@ -363,6 +369,7 @@ export function planNewNoteCreation(
 		vaults,
 		template,
 		defaults,
+		titleHeading,
 	} = options;
 	const resolved = resolveNewNote({
 		destination,
@@ -373,6 +380,7 @@ export function planNewNoteCreation(
 		vaults,
 		template,
 		defaults,
+		titleHeading,
 	});
 	const collision = findPathCollision(entries, resolved.entry.path);
 	if (collision) {
