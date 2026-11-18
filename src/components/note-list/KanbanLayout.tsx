@@ -108,24 +108,36 @@ function GroupBoard(props: KanbanLayoutProps) {
 }
 
 const NO_VIEWS: NonNullable<KanbanLayoutProps['views']> = []
+
+/** A board View with no conditions matches the whole vault, so it would make Other hold everything. */
+function hasBoardFilter(boardView: KanbanLayoutProps['boardView']): boolean {
+  if (!boardView) return true
+  const filters = boardView.definition.filters
+  const nodes = 'all' in filters ? filters.all : filters.any
+  return nodes.length > 0
+}
 const refuseMove = () => Promise.resolve()
 
 function ViewColumnsBoard(props: KanbanLayoutProps) {
   const { entries, columns: configs = [], views = NO_VIEWS, boardView = null, onColumnsChange, onApplyMove = refuseMove, onCreateCard, locale } = props
   const [composingKey, setComposingKey] = useState<string | null>(null)
-  const built = useMemo(() => buildViewColumns(entries, configs, views, boardView), [boardView, configs, entries, views])
+  const { pool, scope } = useMemo(() => ({
+    pool: props.allEntries.filter((entry) => !entry.archived),
+    scope: hasBoardFilter(boardView) ? entries : [],
+  }), [boardView, entries, props.allEntries])
+  const built = useMemo(() => buildViewColumns(scope, configs, views, boardView, pool), [boardView, configs, pool, scope, views])
   const { pending, onCardDrop, canDrop } = useViewCardMoves({ columns: built, onApplyMove })
   const creatable = useMemo(() => {
     if (!onCreateCard) return new Set<string>()
     const today = todayIso()
-    return new Set(built.filter((target) => planViewColumnCreate({ target, boardView, today })).map((column) => column.key))
-  }, [boardView, built, onCreateCard])
+    return new Set(built.filter((target) => planViewColumnCreate({ target, boardView: null, today })).map((column) => column.key))
+  }, [built, onCreateCard])
   const columns = useMemo(() => viewBoardColumns(built, pending, locale, creatable), [built, creatable, locale, pending])
   const onCreateInColumn = useCallback((key: string, title: string) => {
     const target = built.find((column) => column.key === key)
-    const plan = target && planViewColumnCreate({ target, boardView, today: todayIso() })
+    const plan = target && planViewColumnCreate({ target, boardView: null, today: todayIso() })
     if (plan) onCreateCard?.(title, plan)
-  }, [boardView, built, onCreateCard])
+  }, [built, onCreateCard])
   const onColumnMove = useCallback((from: string, to: string) => {
     const order = moveColumn(configs.map((column) => column.view), from, to)
     onColumnsChange?.(order.flatMap((view) => configs.filter((column) => column.view === view)))

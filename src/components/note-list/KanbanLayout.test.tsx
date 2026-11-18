@@ -151,6 +151,27 @@ describe('KanbanLayout', () => {
       expect(screen.getAllByRole('button', { name: 'a' })).toHaveLength(2)
     })
 
+    describe('board scope', () => {
+      const outside = staged('outside', 'done')
+      const board = { filename: 'board.yml', definition: { name: 'Board', icon: null, color: null, sort: null, filters: { all: [{ field: 'Stage', op: 'contains' as const, value: 'o' }] } } }
+
+      it('fills columns from every note a column View matches, not only the board View result', () => {
+        renderViewBoard({ entries: [cards[0]], allEntries: [...cards, outside], boardView: board, columns: [col('done.yml')] })
+        const done = screen.getByRole('region', { name: 'Done, 2 notes' })
+        expect(within(done).getByText('outside')).toBeInTheDocument()
+      })
+
+      it('limits Other to the board View result', () => {
+        renderViewBoard({ entries: [cards[4]], allEntries: cards, boardView: board, columns: [col('todo.yml')] })
+        expect(screen.getByRole('region', { name: 'Other, 1 note' })).toBeInTheDocument()
+      })
+
+      it('does not let the board View filter block new cards', () => {
+        renderViewBoard({ entries: [], allEntries: cards, boardView: board, columns: [col('todo.yml')], onCreateCard: vi.fn() })
+        expect(screen.getByRole('button', { name: 'Add card to To do' })).toBeInTheDocument()
+      })
+    })
+
     describe('new cards', () => {
       it('offers a new-card button on columns a card can be written into, not Other or missing ones', () => {
         renderViewBoard({ columns: [col('gone.yml'), col('todo.yml'), col('done.yml')], onCreateCard: vi.fn() })

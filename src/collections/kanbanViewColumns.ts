@@ -95,16 +95,19 @@ function otherColumn(entries: VaultEntry[], placed: Set<string>): KanbanViewColu
 }
 
 /**
- * Turn a board View's filtered notes into columns (ADR-0303). Each column is a saved View: a note
- * shows in every column whose View it matches, and in Other when it matches none. Pure: no I/O.
+ * Turn notes into columns (ADR-0303). Each column is a saved View: a note shows in every column whose
+ * View it matches. Columns draw from `pool` (the whole vault when the caller passes it), so the board
+ * View's own filter does not limit them; Other holds the board's `entries` that match no column.
+ * Pure: no I/O.
  */
 export function buildViewColumns(
   entries: VaultEntry[],
   configs: KanbanColumnConfig[],
   views: ViewFile[],
   boardView?: ViewFile | null,
+  pool: VaultEntry[] = entries,
 ): KanbanViewColumn[] {
-  const columns = configs.map((column) => viewColumn(column, findView(views, column.view, boardView), entries))
+  const columns = configs.map((column) => viewColumn(column, findView(views, column.view, boardView), pool))
   const placed = new Set(columns.flatMap((column) => column.cards.map((card) => card.path)))
   return [...columns, ...otherColumn(entries, placed)]
 }

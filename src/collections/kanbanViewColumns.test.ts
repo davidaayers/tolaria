@@ -107,4 +107,13 @@ describe('buildViewColumns', () => {
     expect(buildViewColumns(entries, [col('todo.yml', { wipLimit: 3 })], VIEWS)[0].overLimit).toBe(false)
     expect(buildViewColumns(entries, [col('todo.yml')], VIEWS)[0]).toMatchObject({ wipLimit: null, overLimit: false })
   })
+
+  it('fills columns from a wider pool than the board scope, and keeps Other to the scope', () => {
+    const inScope = [note('a', 'todo'), note('stray', 'unknown')]
+    const pool = [...inScope, note('b', 'todo'), note('c', 'done'), note('far', 'unknown')]
+    const result = buildViewColumns(inScope, [col('todo.yml'), col('done.yml')], VIEWS, null, pool)
+    expect(titles(result, 'todo.yml')).toEqual(['a', 'b'])
+    expect(titles(result, 'done.yml')).toEqual(['c'])
+    expect(titles(result, OTHER_COLUMN_KEY)).toEqual(['stray'])
+  })
 })
