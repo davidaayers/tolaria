@@ -33,7 +33,7 @@ export function KanbanCardFace({ entry, context, className }: KanbanCardFaceProp
   const displayProps = cardDisplayProperties(entry, context.cardProperties, context.typeEntryMap, context.displayPropsOverride)
   return (
     <Card className={cn('kanban-card gap-0 rounded-lg px-3 py-2.5 text-left shadow-xs', className)}>
-      <span className="block truncate text-[13px] font-medium text-foreground">{entry.title}</span>
+      <span className="line-clamp-2 break-words text-[13px] font-medium text-foreground">{entry.title}</span>
       {displayProps.length > 0 && (
         <KanbanCardChips
           entry={entry}
