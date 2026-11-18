@@ -40,8 +40,23 @@ describe('KanbanLayout', () => {
   it('renders card fields with the note-list property chips', () => {
     renderBoard()
     const alphaCard = screen.getByRole('button', { name: 'Alpha' })
-    expect(within(alphaCard).getByTestId('property-chips')).toHaveTextContent('Ada')
+    expect(within(alphaCard).getByText('Ada')).toBeInTheDocument()
     expect(alphaCard).toHaveAttribute('data-selected', 'true')
+  })
+
+  it('shows due dates as urgency chips and other plain values as coloured chips', () => {
+    const iso = (offset: number) => {
+      const day = new Date()
+      day.setDate(day.getDate() + offset)
+      return [day.getFullYear(), day.getMonth() + 1, day.getDate()].map((part) => String(part).padStart(2, '0')).join('-')
+    }
+    const late = makeEntry({ path: '/vault/late.md', title: 'Late', status: 'Doing', properties: { due: iso(-3), owner: 'Ada' } })
+    const soon = makeEntry({ path: '/vault/soon.md', title: 'Soon', status: 'Doing', properties: { due: iso(1) } })
+    renderBoard({ entries: [late, soon], allEntries: [late, soon], properties: ['due', 'owner'] })
+    const lateCard = screen.getByRole('button', { name: 'Late' })
+    expect(within(lateCard).getByText('3d overdue')).toHaveAttribute('data-urgency', 'overdue')
+    expect(within(lateCard).getByText('Ada')).toBeInTheDocument()
+    expect(within(screen.getByRole('button', { name: 'Soon' })).getByText('Due tomorrow')).toHaveAttribute('data-urgency', 'soon')
   })
 
   it('resolves linked card fields against the whole vault, like list rows', () => {

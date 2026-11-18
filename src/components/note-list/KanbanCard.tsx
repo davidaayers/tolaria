@@ -3,8 +3,9 @@ import { useDraggable } from '@dnd-kit/core'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import type { AppLocale } from '../../lib/i18n'
 import type { VaultEntry } from '../../types'
-import { PropertyChips } from '../note-item/PropertyChips'
+import { KanbanCardChips } from './KanbanCardChips'
 import { cardDisplayProperties, cardId } from './kanbanModel'
 
 /** A ghost Button reset to a block-level card slot, so the whole card is one native, focusable control. */
@@ -17,6 +18,7 @@ export interface KanbanCardContext {
   displayPropsOverride?: string[] | null
   /** Localized screen-reader role description for a card. */
   cardRole: string
+  locale: AppLocale
   onOpen: (entry: VaultEntry, event: MouseEvent) => void
 }
 
@@ -33,11 +35,12 @@ export function KanbanCardFace({ entry, context, className }: KanbanCardFaceProp
     <Card className={cn('kanban-card gap-0 rounded-lg px-3 py-2.5 text-left shadow-xs', className)}>
       <span className="block truncate text-[13px] font-medium text-foreground">{entry.title}</span>
       {displayProps.length > 0 && (
-        <PropertyChips
+        <KanbanCardChips
           entry={entry}
-          displayProps={displayProps}
+          properties={displayProps}
           allEntries={context.allEntries}
           typeEntryMap={context.typeEntryMap}
+          locale={context.locale}
           onOpenNote={context.onOpen}
         />
       )}

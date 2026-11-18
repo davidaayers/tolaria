@@ -57,7 +57,7 @@ function KanbanBoard({ boardColumns, label, onCardDrop, onColumnMove, canDrop, c
   const sensors = useKanbanSensors()
   const drag = useKanbanDrag({ onCardDrop, onColumnMove })
   const context = useMemo<KanbanCardContext>(
-    () => ({ cardProperties: properties, allEntries, typeEntryMap, displayPropsOverride, cardRole: translate(locale, 'layout.cardRole'), onOpen }),
+    () => ({ cardProperties: properties, allEntries, typeEntryMap, displayPropsOverride, cardRole: translate(locale, 'layout.cardRole'), locale, onOpen }),
     [allEntries, displayPropsOverride, locale, onOpen, properties, typeEntryMap],
   )
   const draggedCard = drag.active?.kind === 'card' ? drag.active : null
