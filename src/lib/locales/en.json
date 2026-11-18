@@ -16,7 +16,6 @@
   "layout.columnLabelMany": "{column}, {count} notes",
   "layout.columnRole": "column",
   "layout.cardRole": "card",
-  "layout.otherColumn": "Other",
   "layout.viewMissing": "{view} (View not found)",
   "layout.moreCards": "+{count} more",
   "layout.wipLimit": "WIP limit: {count}",

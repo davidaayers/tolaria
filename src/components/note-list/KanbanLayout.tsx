@@ -109,23 +109,13 @@ function GroupBoard(props: KanbanLayoutProps) {
 
 const NO_VIEWS: NonNullable<KanbanLayoutProps['views']> = []
 
-/** A board View with no conditions matches the whole vault, so it would make Other hold everything. */
-function hasBoardFilter(boardView: KanbanLayoutProps['boardView']): boolean {
-  if (!boardView) return true
-  const filters = boardView.definition.filters
-  const nodes = 'all' in filters ? filters.all : filters.any
-  return nodes.length > 0
-}
 const refuseMove = () => Promise.resolve()
 
 function ViewColumnsBoard(props: KanbanLayoutProps) {
-  const { entries, columns: configs = [], views = NO_VIEWS, boardView = null, onColumnsChange, onApplyMove = refuseMove, onCreateCard, locale } = props
+  const { columns: configs = [], views = NO_VIEWS, boardView = null, onColumnsChange, onApplyMove = refuseMove, onCreateCard, locale } = props
   const [composingKey, setComposingKey] = useState<string | null>(null)
-  const { pool, scope } = useMemo(() => ({
-    pool: props.allEntries.filter((entry) => !entry.archived),
-    scope: hasBoardFilter(boardView) ? entries : [],
-  }), [boardView, entries, props.allEntries])
-  const built = useMemo(() => buildViewColumns(scope, configs, views, boardView, pool), [boardView, configs, pool, scope, views])
+  const pool = useMemo(() => props.allEntries.filter((entry) => !entry.archived), [props.allEntries])
+  const built = useMemo(() => buildViewColumns(pool, configs, views, boardView), [boardView, configs, pool, views])
   const { pending, onCardDrop, canDrop } = useViewCardMoves({ columns: built, onApplyMove })
   const creatable = useMemo(() => {
     if (!onCreateCard) return new Set<string>()

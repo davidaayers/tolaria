@@ -8,12 +8,10 @@ import {
   type KanbanColumnConfig,
 } from './collectionTypes'
 
-export const OTHER_COLUMN_KEY = '__other__'
-
 export interface KanbanViewColumn {
-  /** The referenced View's filename, or `OTHER_COLUMN_KEY`. */
+  /** The referenced View's filename. */
   key: string
-  /** The View's name (the filename without extension when the View is missing). Other is labelled by the UI. */
+  /** The View's name (the filename without extension when the View is missing). */
   label: string
   /** The View's `icon`: emoji, icon name or image URL. */
   icon: string | null
@@ -22,7 +20,6 @@ export interface KanbanViewColumn {
   view: ViewFile | null
   /** True when the column references a View that does not exist. */
   missing: boolean
-  isOther: boolean
   config: KanbanColumnConfig | null
   cards: VaultEntry[]
   visibleCards: VaultEntry[]
@@ -49,7 +46,7 @@ function sortedBy(entries: VaultEntry[], sort: string | null | undefined): Vault
   return [...entries].sort(getSortComparator(config.option, config.direction))
 }
 
-type ColumnIdentity = Pick<KanbanViewColumn, 'key' | 'label' | 'icon' | 'color' | 'view' | 'missing' | 'isOther'>
+type ColumnIdentity = Pick<KanbanViewColumn, 'key' | 'label' | 'icon' | 'color' | 'view' | 'missing'>
 
 function finishColumn(identity: ColumnIdentity, config: KanbanColumnConfig | null, entries: VaultEntry[]): KanbanViewColumn {
   const cards = entries
@@ -74,40 +71,29 @@ function fileLabel(filename: string): string {
 function viewColumn(config: KanbanColumnConfig, view: ViewFile | null, entries: VaultEntry[]): KanbanViewColumn {
   if (!view) {
     return finishColumn(
-      { key: config.view, label: fileLabel(config.view), icon: null, color: null, view: null, missing: true, isOther: false },
+      { key: config.view, label: fileLabel(config.view), icon: null, color: null, view: null, missing: true },
       config,
       [],
     )
   }
   const matching = sortedBy(evaluateView(view.definition, entries), view.definition.sort)
   return finishColumn(
-    { key: config.view, label: view.definition.name, icon: view.definition.icon, color: viewColor(view), view, missing: false, isOther: false },
+    { key: config.view, label: view.definition.name, icon: view.definition.icon, color: viewColor(view), view, missing: false },
     config,
     matching,
   )
 }
 
-function otherColumn(entries: VaultEntry[], placed: Set<string>): KanbanViewColumn[] {
-  const rest = entries.filter((entry) => !placed.has(entry.path))
-  if (rest.length === 0) return []
-  const identity = { key: OTHER_COLUMN_KEY, label: 'Other', icon: null, color: null, view: null, missing: false, isOther: true }
-  return [finishColumn(identity, null, rest)]
-}
-
 /**
- * Turn notes into columns (ADR-0303). Each column is a saved View: a note shows in every column whose
- * View it matches. Columns draw from `pool` (the whole vault when the caller passes it), so the board
- * View's own filter does not limit them; Other holds the board's `entries` that match no column.
- * Pure: no I/O.
+ * Turn notes into columns (ADR-0303). Each column is a saved View: it shows every note in `entries`
+ * that its View matches, and a note shows in every column it matches. The board View's own filter
+ * does not limit columns, and there is no catch-all column. Pure: no I/O.
  */
 export function buildViewColumns(
   entries: VaultEntry[],
   configs: KanbanColumnConfig[],
   views: ViewFile[],
   boardView?: ViewFile | null,
-  pool: VaultEntry[] = entries,
 ): KanbanViewColumn[] {
-  const columns = configs.map((column) => viewColumn(column, findView(views, column.view, boardView), pool))
-  const placed = new Set(columns.flatMap((column) => column.cards.map((card) => card.path)))
-  return [...columns, ...otherColumn(entries, placed)]
+  return configs.map((column) => viewColumn(column, findView(views, column.view, boardView), entries))
 }

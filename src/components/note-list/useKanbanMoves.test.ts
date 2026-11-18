@@ -31,7 +31,7 @@ describe('useViewCardMoves', () => {
     expect(hook.result.current.pending.get(note.path)).toMatchObject({ from: 'todo.yml', to: 'done.yml' })
   })
 
-  it('refuses drops on its own column, on Other and on columns it cannot satisfy', () => {
+  it('refuses drops on its own column and on columns it cannot satisfy', () => {
     const { hook, onApplyMove } = setup()
     expect(hook.result.current.canDrop(note, 'done.yml')).toBe(true)
     expect(hook.result.current.canDrop(note, 'missing.yml')).toBe(false)

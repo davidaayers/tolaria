@@ -27,10 +27,10 @@ describe('viewBoardColumns', () => {
   const built = (entries = [note('a', 'todo'), note('b', 'done'), note('c', 'mystery')], configs = [col('todo.yml'), col('done.yml')]) =>
     buildViewColumns(entries, configs, VIEWS)
 
-  it('titles Other and missing views, and keeps Other out of reordering', () => {
+  it('titles missing views and keeps every column reorderable', () => {
     const columns = viewBoardColumns(built(undefined, [col('todo.yml'), col('gone.yml')]), new Map(), 'en')
-    expect(columns.map((column) => column.title)).toEqual(['To do', 'gone (View not found)', 'Other'])
-    expect(columns.map((column) => column.reorderable)).toEqual([true, true, false])
+    expect(columns.map((column) => column.title)).toEqual(['To do', 'gone (View not found)'])
+    expect(columns.map((column) => column.reorderable)).toEqual([true, true])
     expect(columns[1].missing).toBe(true)
   })
 

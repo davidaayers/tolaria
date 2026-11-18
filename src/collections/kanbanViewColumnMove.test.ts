@@ -54,12 +54,7 @@ describe('planViewColumnMove', () => {
     expect(plan(task({ Stage: 'todo' }), VIEWS, COLS, 'todo.yml')).toBeNull()
   })
 
-  it('refuses Other, missing views and target views it cannot satisfy by writing', () => {
-    const columns = buildViewColumns([task({ Stage: 'mystery' })], COLS, VIEWS)
-    const other = columns.find((c) => c.isOther)
-    if (!other) throw new Error('expected an Other column')
-    expect(planViewColumnMove({ entry: task({ Stage: 'mystery' }), columns, target: other, today: TODAY })).toBeNull()
-
+  it('refuses missing views and target views it cannot satisfy by writing', () => {
     expect(plan(task({}), VIEWS, [col('todo.yml'), col('gone.yml')], 'gone.yml')).toBeNull()
 
     const hard = [

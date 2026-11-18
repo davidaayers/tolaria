@@ -6,7 +6,7 @@ import { columnTitle, groupEntries, orderColumns, type PendingMoves } from './ka
 
 /** What the board renders for one column, whether it comes from a group-by value or a saved View. */
 export interface KanbanBoardColumn {
-  /** Group value, saved-View filename or the Other key; unique within a board. */
+  /** Group value, saved-View filename; unique within a board. */
   key: string
   title: string
   icon: string | null
@@ -60,7 +60,6 @@ function cardsWithPending(column: KanbanViewColumn, pending: ViewPendingMoves): 
 }
 
 function viewColumnTitle(column: KanbanViewColumn, locale: AppLocale): string {
-  if (column.isOther) return translate(locale, 'layout.otherColumn')
   if (column.missing) return translate(locale, 'layout.viewMissing', { view: column.label })
   return column.label
 }
@@ -82,7 +81,7 @@ export function viewBoardColumns(columns: KanbanViewColumn[], pending: ViewPendi
       wipLimit,
       overLimit: wipLimit !== null && all.length > wipLimit,
       missing: column.missing,
-      reorderable: !column.isOther,
+      reorderable: true,
       canCreate: creatable.has(column.key),
     }
   })

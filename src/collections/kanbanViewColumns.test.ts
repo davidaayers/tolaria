@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { makeEntry } from '../test-utils/noteListTestUtils'
 import type { FilterGroup, VaultEntry, ViewFile } from '../types'
-import { buildViewColumns, OTHER_COLUMN_KEY } from './kanbanViewColumns'
+import { buildViewColumns } from './kanbanViewColumns'
 import type { KanbanColumnConfig } from './collectionTypes'
 
 function savedView(filename: string, filters: FilterGroup, extra: Partial<ViewFile['definition']> = {}, rootPath?: string): ViewFile {
@@ -29,7 +29,7 @@ describe('buildViewColumns', () => {
   it('builds one column per referenced view, in order, taking name, icon and colour from the view', () => {
     const result = buildViewColumns([note('a', 'todo'), note('b', 'done')], [col('done.yml'), col('todo.yml')], VIEWS)
     expect(result.map((c) => c.key)).toEqual(['done.yml', 'todo.yml'])
-    expect(result[0]).toMatchObject({ label: 'Done', icon: '✅', color: 'green', missing: false, isOther: false })
+    expect(result[0]).toMatchObject({ label: 'Done', icon: '✅', color: 'green', missing: false })
     expect(result[1]).toMatchObject({ label: 'To do', icon: 'tray', color: 'gray' })
     expect(titles(result, 'todo.yml')).toEqual(['a'])
     expect(titles(result, 'done.yml')).toEqual(['b'])
@@ -45,14 +45,10 @@ describe('buildViewColumns', () => {
     expect(result[0].cards).toEqual([])
   })
 
-  it('puts notes that match no column in Other, shown only when non-empty', () => {
-    const none = buildViewColumns([note('a', 'todo')], [col('todo.yml')], VIEWS)
-    expect(none.map((c) => c.key)).toEqual(['todo.yml'])
-
+  it('adds no catch-all column: notes that match no column are simply not shown', () => {
     const result = buildViewColumns([note('a', 'todo'), note('b', 'mystery'), note('c')], [col('todo.yml')], VIEWS)
-    expect(result.map((c) => c.key)).toEqual(['todo.yml', OTHER_COLUMN_KEY])
-    expect(titles(result, OTHER_COLUMN_KEY)).toEqual(['b', 'c'])
-    expect(result[1]).toMatchObject({ isOther: true, view: null })
+    expect(result.map((c) => c.key)).toEqual(['todo.yml'])
+    expect(titles(result, 'todo.yml')).toEqual(['a'])
   })
 
   it('shows a note in every column whose view it matches', () => {
@@ -64,7 +60,6 @@ describe('buildViewColumns', () => {
     const result = buildViewColumns([entry], [col('todo.yml'), col('tagged.yml')], views)
     expect(titles(result, 'todo.yml')).toEqual(['a'])
     expect(titles(result, 'tagged.yml')).toEqual(['a'])
-    expect(result.some((c) => c.isOther)).toBe(false)
   })
 
   it('marks a column missing when its view does not exist, and keeps it in place', () => {
@@ -106,14 +101,5 @@ describe('buildViewColumns', () => {
     expect(buildViewColumns(entries, [col('todo.yml', { wipLimit: 2 })], VIEWS)[0]).toMatchObject({ wipLimit: 2, overLimit: true })
     expect(buildViewColumns(entries, [col('todo.yml', { wipLimit: 3 })], VIEWS)[0].overLimit).toBe(false)
     expect(buildViewColumns(entries, [col('todo.yml')], VIEWS)[0]).toMatchObject({ wipLimit: null, overLimit: false })
-  })
-
-  it('fills columns from a wider pool than the board scope, and keeps Other to the scope', () => {
-    const inScope = [note('a', 'todo'), note('stray', 'unknown')]
-    const pool = [...inScope, note('b', 'todo'), note('c', 'done'), note('far', 'unknown')]
-    const result = buildViewColumns(inScope, [col('todo.yml'), col('done.yml')], VIEWS, null, pool)
-    expect(titles(result, 'todo.yml')).toEqual(['a', 'b'])
-    expect(titles(result, 'done.yml')).toEqual(['c'])
-    expect(titles(result, OTHER_COLUMN_KEY)).toEqual(['stray'])
   })
 })

@@ -117,18 +117,17 @@ describe('KanbanLayout', () => {
       return renderBoard({ entries: cards, allEntries: cards, columns: [col('todo.yml'), col('done.yml')], views, selectedNotePath: null, ...overrides })
     }
 
-    it('renders one column per View, plus Other for notes that match none', () => {
+    it('renders one column per View and no catch-all column', () => {
       renderViewBoard()
       const columns = screen.getAllByTestId('kanban-column')
-      expect(columns.map((column) => column.dataset.kanbanColumn)).toEqual(['todo.yml', 'done.yml', '__other__'])
+      expect(columns.map((column) => column.dataset.kanbanColumn)).toEqual(['todo.yml', 'done.yml'])
       expect(screen.getByRole('region', { name: 'To do, 3 notes' })).toBeInTheDocument()
-      expect(screen.getByRole('region', { name: 'Other, 1 note' })).toBeInTheDocument()
       expect(screen.getByTestId('kanban-board')).toHaveAccessibleName('Kanban with saved View columns')
     })
 
     it('follows the configured column order, not alphabetical order', () => {
       renderViewBoard({ columns: [col('done.yml'), col('todo.yml')] })
-      expect(screen.getAllByTestId('kanban-column').map((column) => column.dataset.kanbanColumn)).toEqual(['done.yml', 'todo.yml', '__other__'])
+      expect(screen.getAllByTestId('kanban-column').map((column) => column.dataset.kanbanColumn)).toEqual(['done.yml', 'todo.yml'])
     })
 
     it('shows a WIP count against the limit and a "+N more" footer for capped columns', () => {
@@ -161,11 +160,6 @@ describe('KanbanLayout', () => {
         expect(within(done).getByText('outside')).toBeInTheDocument()
       })
 
-      it('limits Other to the board View result', () => {
-        renderViewBoard({ entries: [cards[4]], allEntries: cards, boardView: board, columns: [col('todo.yml')] })
-        expect(screen.getByRole('region', { name: 'Other, 1 note' })).toBeInTheDocument()
-      })
-
       it('does not let the board View filter block new cards', () => {
         renderViewBoard({ entries: [], allEntries: cards, boardView: board, columns: [col('todo.yml')], onCreateCard: vi.fn() })
         expect(screen.getByRole('button', { name: 'Add card to To do' })).toBeInTheDocument()
@@ -173,7 +167,7 @@ describe('KanbanLayout', () => {
     })
 
     describe('new cards', () => {
-      it('offers a new-card button on columns a card can be written into, not Other or missing ones', () => {
+      it('offers a new-card button on columns a card can be written into, not missing ones', () => {
         renderViewBoard({ columns: [col('gone.yml'), col('todo.yml'), col('done.yml')], onCreateCard: vi.fn() })
         expect(screen.getByRole('button', { name: 'Add card to To do' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Add card to Done' })).toBeInTheDocument()
