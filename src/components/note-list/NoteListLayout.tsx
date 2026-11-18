@@ -1,4 +1,5 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
+import type { ViewColumnCreatePlan } from '../../collections/kanbanViewColumnCreate'
 import type { ViewColumnMovePlan } from '../../collections/kanbanViewColumnMove'
 import type { VaultEntry } from '../../types'
 import { BulkActionBar } from '../BulkActionBar'
@@ -404,6 +405,16 @@ function useViewColumnMoveWriter({ onUpdateNoteProperty, onDeleteNoteProperty }:
   }, [onDeleteNoteProperty, onUpdateNoteProperty])
 }
 
+/** Creates a Kanban column card as a titled note carrying what its column View requires, without opening it. */
+function useViewColumnCardCreator({ onCreateNoteWithProperties }: Pick<NoteListLayoutProps, 'onCreateNoteWithProperties'>) {
+  return useMemo(() => {
+    if (!onCreateNoteWithProperties) return undefined
+    return (title: string, plan: ViewColumnCreatePlan) => {
+      void onCreateNoteWithProperties(title, plan.type, { initialProperties: plan.properties, openTab: false })
+    }
+  }, [onCreateNoteWithProperties])
+}
+
 function LayoutHeaderControls({ layout, locale }: { layout: CollectionLayoutState; locale: NoteListLayoutProps['locale'] }) {
   if (!layout.enabled) return null
   return (
@@ -429,6 +440,7 @@ export function NoteListLayout({
   const layout = useCollectionLayout(contentProps)
   const { locale } = contentProps
   const applyMove = useViewColumnMoveWriter(contentProps)
+  const createCard = useViewColumnCardCreator(contentProps)
   return (
     <div
       ref={noteListPanelRef}
@@ -459,6 +471,7 @@ export function NoteListLayout({
           views={contentProps.views}
           boardView={viewFor(contentProps) ?? null}
           onApplyMove={applyMove}
+          onCreateCard={createCard}
         />
       </div>
       <NoteListFooter {...contentProps} />

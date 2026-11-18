@@ -22,6 +22,8 @@ export interface KanbanBoardColumn {
   missing: boolean
   /** Columns can be dragged into a new order. */
   reorderable: boolean
+  /** A new card can be created in this column. */
+  canCreate: boolean
 }
 
 /** A drop that the vault has not confirmed yet: the card shows in its new column until it does. */
@@ -44,7 +46,7 @@ export function groupBoardColumns(
     const cards = grouped.get(key) ?? []
     return {
       key, title: columnTitle(key, locale), icon: null, color: null, cards, count: cards.length,
-      hiddenCount: 0, wipLimit: null, overLimit: false, missing: false, reorderable: true,
+      hiddenCount: 0, wipLimit: null, overLimit: false, missing: false, reorderable: true, canCreate: false,
     }
   })
 }
@@ -63,7 +65,7 @@ function viewColumnTitle(column: KanbanViewColumn, locale: AppLocale): string {
   return column.label
 }
 
-export function viewBoardColumns(columns: KanbanViewColumn[], pending: ViewPendingMoves, locale: AppLocale): KanbanBoardColumn[] {
+export function viewBoardColumns(columns: KanbanViewColumn[], pending: ViewPendingMoves, locale: AppLocale, creatable: ReadonlySet<string> = new Set()): KanbanBoardColumn[] {
   return columns.map((column) => {
     const all = cardsWithPending(column, pending)
     const show = column.config?.show ?? null
@@ -81,6 +83,7 @@ export function viewBoardColumns(columns: KanbanViewColumn[], pending: ViewPendi
       overLimit: wipLimit !== null && all.length > wipLimit,
       missing: column.missing,
       reorderable: !column.isOther,
+      canCreate: creatable.has(column.key),
     }
   })
 }

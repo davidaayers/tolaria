@@ -1,8 +1,10 @@
-import { memo } from 'react'
+import { memo, useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Virtuoso } from 'react-virtuoso'
+import { Plus } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { type AppLocale, translate } from '../../lib/i18n'
 import { ACCENT_COLORS } from '../../utils/typeColors'
@@ -20,6 +22,11 @@ export interface KanbanColumnProps {
   isCardTarget: boolean
   /** A dragged card cannot be dropped here, so the column is dimmed. */
   isCardRefused?: boolean
+  /** The new-card title field is open in this column. */
+  composing?: boolean
+  onStartCompose?: () => void
+  onCancelCompose?: () => void
+  onCreateCard?: (title: string) => void
 }
 
 type HeaderColumn = Pick<KanbanBoardColumn, 'title' | 'count' | 'icon' | 'color' | 'wipLimit' | 'overLimit'>
@@ -45,7 +52,30 @@ export function KanbanColumnHeader({ title, count, icon = null, color = null, wi
   )
 }
 
-export const KanbanColumn = memo(function KanbanColumn({ column, context, locale, selectedNotePath, droppedPath, isCardTarget, isCardRefused }: KanbanColumnProps) {
+function CardComposer({ locale, onSubmit, onCancel }: { locale: AppLocale; onSubmit: (title: string) => void; onCancel: () => void }) {
+  const [title, setTitle] = useState('')
+  const submit = () => {
+    const trimmed = title.trim()
+    if (trimmed) onSubmit(trimmed)
+  }
+  return (
+    <Input
+      autoFocus
+      value={title}
+      aria-label={translate(locale, 'layout.newCardTitle')}
+      placeholder={translate(locale, 'layout.newCardTitle')}
+      className="mb-2 h-8 bg-background text-[13px]"
+      onChange={(event) => setTitle(event.target.value)}
+      onBlur={onCancel}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') { event.preventDefault(); submit() }
+        if (event.key === 'Escape') { event.preventDefault(); onCancel() }
+      }}
+    />
+  )
+}
+
+export const KanbanColumn = memo(function KanbanColumn({ column, context, locale, selectedNotePath, droppedPath, isCardTarget, isCardRefused, composing, onStartCompose, onCancelCompose, onCreateCard }: KanbanColumnProps) {
   const { key, title, cards, count, hiddenCount, reorderable } = column
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: columnId(key),
@@ -66,6 +96,7 @@ export const KanbanColumn = memo(function KanbanColumn({ column, context, locale
       data-kanban-column={key}
       data-testid="kanban-column"
     >
+      <div className="relative shrink-0">
       <Button
         ref={setActivatorNodeRef}
         type="button"
@@ -74,11 +105,28 @@ export const KanbanColumn = memo(function KanbanColumn({ column, context, locale
         {...listeners}
         aria-roledescription={translate(locale, 'layout.columnRole')}
         aria-label={title}
-        className="h-10 w-full shrink-0 cursor-grab justify-start rounded-t-xl rounded-b-none px-3 hover:bg-transparent focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
+        className={cn('h-10 w-full shrink-0 cursor-grab justify-start rounded-t-xl rounded-b-none px-3 hover:bg-transparent focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing', column.canCreate && 'pr-10')}
       >
         <KanbanColumnHeader {...column} locale={locale} />
       </Button>
+      {column.canCreate && onStartCompose && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="absolute right-1.5 top-2 size-6"
+          aria-label={translate(locale, 'layout.addCard', { column: title })}
+          title={translate(locale, 'layout.addCard', { column: title })}
+          onClick={onStartCompose}
+        >
+          <Plus size={14} />
+        </Button>
+      )}
+      </div>
       <div className="min-h-0 flex-1 px-2 pb-2">
+        {composing && onCreateCard && onCancelCompose && (
+          <CardComposer locale={locale} onSubmit={onCreateCard} onCancel={onCancelCompose} />
+        )}
         <Virtuoso
           data={cards}
           className="kanban-scroll"

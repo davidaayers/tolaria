@@ -135,5 +135,40 @@ describe('KanbanLayout', () => {
       renderViewBoard({ entries: [cards[0]], allEntries: [cards[0]], views: both, columns: [col('todo.yml'), col('any.yml')] })
       expect(screen.getAllByRole('button', { name: 'a' })).toHaveLength(2)
     })
+
+    describe('new cards', () => {
+      it('offers a new-card button on columns a card can be written into, not Other or missing ones', () => {
+        renderViewBoard({ columns: [col('gone.yml'), col('todo.yml'), col('done.yml')], onCreateCard: vi.fn() })
+        expect(screen.getByRole('button', { name: 'Add card to To do' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Add card to Done' })).toBeInTheDocument()
+        expect(screen.getAllByRole('button', { name: /^Add card to/ })).toHaveLength(2)
+      })
+
+      it('offers nothing when the board cannot create notes', () => {
+        renderViewBoard()
+        expect(screen.queryByRole('button', { name: /^Add card to/ })).not.toBeInTheDocument()
+      })
+
+      it('creates a card with what the column View requires once a title is entered', () => {
+        const props = renderViewBoard({ onCreateCard: vi.fn() })
+        fireEvent.click(screen.getByRole('button', { name: 'Add card to Done' }))
+        const input = screen.getByRole('textbox', { name: 'Card title' })
+        fireEvent.change(input, { target: { value: 'Ship it' } })
+        fireEvent.keyDown(input, { key: 'Enter' })
+        expect(props.onCreateCard).toHaveBeenCalledWith('Ship it', { type: 'Note', properties: { Stage: 'done' } })
+        expect(screen.queryByRole('textbox', { name: 'Card title' })).not.toBeInTheDocument()
+      })
+
+      it('ignores a blank title and closes the composer on Escape', () => {
+        const props = renderViewBoard({ onCreateCard: vi.fn() })
+        fireEvent.click(screen.getByRole('button', { name: 'Add card to To do' }))
+        const input = screen.getByRole('textbox', { name: 'Card title' })
+        fireEvent.change(input, { target: { value: '   ' } })
+        fireEvent.keyDown(input, { key: 'Enter' })
+        expect(props.onCreateCard).not.toHaveBeenCalled()
+        fireEvent.keyDown(input, { key: 'Escape' })
+        expect(screen.queryByRole('textbox', { name: 'Card title' })).not.toBeInTheDocument()
+      })
+    })
   })
 })

@@ -40,6 +40,8 @@ presentation:
 
 Each column takes its name, icon, colour, filter and sort from its view. `show` caps how many cards a column lists, `wipLimit` shows `count/limit` and warns when it is exceeded, and `stamp` sets a date property to today when a card enters the column. A card appears in every column whose view it matches, and notes that match none appear in an Other column. Dropping a card into a column writes whatever that column's view requires; columns whose view cannot be satisfied by setting properties dim while you drag.
 
+A column whose view can be satisfied by setting properties also has a **+** button in its header. It asks for a title, then creates the note in the background with everything the column's view requires, plus the board view's own conditions and the column's `stamp`, so the new card lands in that column. Columns that cannot take a new card (Other, missing views, filters like `any` or a fixed title) have no button.
+
 ## Design The Question First
 
 Before creating a view, write the question it answers. A good view is not "all fields with all filters"; it is a focused lens.

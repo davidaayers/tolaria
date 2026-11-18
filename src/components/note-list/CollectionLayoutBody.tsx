@@ -1,6 +1,6 @@
 import type { MouseEvent, ReactNode } from 'react'
 import { COLLECTION_PRESENTATION_LIST } from '../../collections/collectionTypes'
-import { getCollectionLayout } from '../../collections/layoutRegistry'
+import { type CollectionLayoutRendererProps, getCollectionLayout } from '../../collections/layoutRegistry'
 import { type AppLocale, translate } from '../../lib/i18n'
 import type { ViewColumnMovePlan } from '../../collections/kanbanViewColumnMove'
 import type { VaultEntry, ViewFile } from '../../types'
@@ -22,6 +22,7 @@ interface CollectionLayoutBodyProps {
   views?: ViewFile[]
   boardView?: ViewFile | null
   onApplyMove?: (entry: VaultEntry, plan: ViewColumnMovePlan) => Promise<void>
+  onCreateCard?: CollectionLayoutRendererProps['onCreateCard']
 }
 
 function MissingGroupProperty({ property, locale, onUseList }: { property: string; locale: AppLocale; onUseList: () => void }) {
@@ -55,6 +56,7 @@ export function CollectionLayoutBody(props: CollectionLayoutBodyProps) {
     views: props.views,
     boardView: props.boardView,
     onApplyMove: props.onApplyMove,
+    onCreateCard: props.onCreateCard,
     locale,
     typeEntryMap: props.typeEntryMap,
     displayPropsOverride: props.displayPropsOverride,

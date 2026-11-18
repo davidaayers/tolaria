@@ -21,6 +21,8 @@
   "layout.moreCards": "+{count} more",
   "layout.wipLimit": "WIP limit: {count}",
   "layout.boardLabelViews": "Kanban with saved View columns",
+  "layout.addCard": "Add card to {column}",
+  "layout.newCardTitle": "Card title",
   "command.palettePlaceholder": "Type a command...",
   "command.footerNavigate": "↑↓ navigate",
   "command.footerSelect": "↵ select",

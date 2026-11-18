@@ -1,9 +1,10 @@
 import './KanbanLayout.css'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { DndContext, DragOverlay, type DropAnimation, defaultDropAnimationSideEffects } from '@dnd-kit/core'
 import { horizontalListSortingStrategy, SortableContext } from '@dnd-kit/sortable'
 import type { CollectionLayoutRendererProps } from '../../collections/layoutRegistry'
+import { planViewColumnCreate } from '../../collections/kanbanViewColumnCreate'
 import { buildViewColumns } from '../../collections/kanbanViewColumns'
 import { type AppLocale, translate } from '../../lib/i18n'
 import type { VaultEntry } from '../../types'
@@ -12,7 +13,7 @@ import { KanbanColumn, KanbanColumnHeader } from './KanbanColumn'
 import { groupBoardColumns, type KanbanBoardColumn, viewBoardColumns } from './kanbanBoardColumns'
 import { columnId, moveColumn } from './kanbanModel'
 import { type KanbanActiveItem, kanbanCollisionDetection, useKanbanDrag, useKanbanSensors } from './useKanbanDrag'
-import { useGroupCardMoves, useViewCardMoves } from './useKanbanMoves'
+import { todayIso, useGroupCardMoves, useViewCardMoves } from './useKanbanMoves'
 
 type KanbanLayoutProps = Omit<CollectionLayoutRendererProps, 'listContent'>
 
@@ -45,9 +46,13 @@ interface KanbanBoardProps extends Omit<KanbanLayoutProps, 'columns'> {
   onColumnMove: (from: string, to: string) => void
   /** Whether a dragged card may land in a column; absent means every column accepts it. */
   canDrop?: (entry: VaultEntry, target: string) => boolean
+  /** Column whose new-card title field is open, and how to open or close it. */
+  composingKey?: string | null
+  onComposeChange?: (key: string | null) => void
+  onCreateInColumn?: (key: string, title: string) => void
 }
 
-function KanbanBoard({ boardColumns, label, onCardDrop, onColumnMove, canDrop, ...props }: KanbanBoardProps) {
+function KanbanBoard({ boardColumns, label, onCardDrop, onColumnMove, canDrop, composingKey, onComposeChange, onCreateInColumn, ...props }: KanbanBoardProps) {
   const { allEntries, properties, onOpen, locale, typeEntryMap, displayPropsOverride, selectedNotePath } = props
   const sensors = useKanbanSensors()
   const drag = useKanbanDrag({ onCardDrop, onColumnMove })
@@ -73,6 +78,10 @@ function KanbanBoard({ boardColumns, label, onCardDrop, onColumnMove, canDrop, .
               droppedPath={drag.droppedPath}
               isCardTarget={cardTarget === column.key}
               isCardRefused={!accepts(column.key)}
+              composing={composingKey === column.key}
+              onStartCompose={() => onComposeChange?.(column.key)}
+              onCancelCompose={() => onComposeChange?.(null)}
+              onCreateCard={(title) => { onCreateInColumn?.(column.key, title); onComposeChange?.(null) }}
             />
           ))}
         </SortableContext>
@@ -102,10 +111,21 @@ const NO_VIEWS: NonNullable<KanbanLayoutProps['views']> = []
 const refuseMove = () => Promise.resolve()
 
 function ViewColumnsBoard(props: KanbanLayoutProps) {
-  const { entries, columns: configs = [], views = NO_VIEWS, boardView = null, onColumnsChange, onApplyMove = refuseMove, locale } = props
+  const { entries, columns: configs = [], views = NO_VIEWS, boardView = null, onColumnsChange, onApplyMove = refuseMove, onCreateCard, locale } = props
+  const [composingKey, setComposingKey] = useState<string | null>(null)
   const built = useMemo(() => buildViewColumns(entries, configs, views, boardView), [boardView, configs, entries, views])
   const { pending, onCardDrop, canDrop } = useViewCardMoves({ columns: built, onApplyMove })
-  const columns = useMemo(() => viewBoardColumns(built, pending, locale), [built, locale, pending])
+  const creatable = useMemo(() => {
+    if (!onCreateCard) return new Set<string>()
+    const today = todayIso()
+    return new Set(built.filter((target) => planViewColumnCreate({ target, boardView, today })).map((column) => column.key))
+  }, [boardView, built, onCreateCard])
+  const columns = useMemo(() => viewBoardColumns(built, pending, locale, creatable), [built, creatable, locale, pending])
+  const onCreateInColumn = useCallback((key: string, title: string) => {
+    const target = built.find((column) => column.key === key)
+    const plan = target && planViewColumnCreate({ target, boardView, today: todayIso() })
+    if (plan) onCreateCard?.(title, plan)
+  }, [boardView, built, onCreateCard])
   const onColumnMove = useCallback((from: string, to: string) => {
     const order = moveColumn(configs.map((column) => column.view), from, to)
     onColumnsChange?.(order.flatMap((view) => configs.filter((column) => column.view === view)))
@@ -118,6 +138,9 @@ function ViewColumnsBoard(props: KanbanLayoutProps) {
       onCardDrop={onCardDrop}
       onColumnMove={onColumnMove}
       canDrop={canDrop}
+      composingKey={composingKey}
+      onComposeChange={setComposingKey}
+      onCreateInColumn={onCreateInColumn}
     />
   )
 }

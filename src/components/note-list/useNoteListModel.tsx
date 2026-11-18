@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo } from 'react'
 import { collectionFromSelection } from '../../collections/collectionFromSelection'
 import { useDateDisplayFormat } from '../../hooks/useAppPreferences'
 import type { MultiSelectState } from '../../hooks/useMultiSelect'
+import type { NamedNoteExtras } from '../../hooks/noteCreationNamed'
 import type { ImmediateCreateOptions } from '../../hooks/useNoteCreation'
 import { prefetchNoteContent } from '../../hooks/useTabManagement'
 import type { AppLocale } from '../../lib/i18n'
@@ -126,6 +127,8 @@ interface UseNoteListContentParams {
   /** Writes one frontmatter property; used to move Kanban cards between View-driven columns. */
   onUpdateNoteProperty?: (path: string, key: string, value: string | number | boolean) => Promise<unknown>
   onDeleteNoteProperty?: (path: string, key: string) => Promise<unknown>
+  /** Creates a titled note with initial frontmatter, without opening it; used for Kanban column cards. */
+  onCreateNoteWithProperties?: (title: string, type: string, extras: NamedNoteExtras) => Promise<unknown>
   updateEntry?: (path: string, patch: Partial<VaultEntry>) => void
   views?: ViewFile[]
   visibleNotesRef?: React.MutableRefObject<VaultEntry[]>
@@ -344,6 +347,8 @@ export interface NoteListProps {
   /** Writes one frontmatter property; used to move Kanban cards between View-driven columns. */
   onUpdateNoteProperty?: (path: string, key: string, value: string | number | boolean) => Promise<unknown>
   onDeleteNoteProperty?: (path: string, key: string) => Promise<unknown>
+  /** Creates a titled note with initial frontmatter, without opening it; used for Kanban column cards. */
+  onCreateNoteWithProperties?: (title: string, type: string, extras: NamedNoteExtras) => Promise<unknown>
   updateEntry?: (path: string, patch: Partial<VaultEntry>) => void
   onOpenInNewWindow?: (entry: VaultEntry) => void
   onRenameFilename?: (path: string, newFilenameStem: string) => void
@@ -379,6 +384,7 @@ type NoteListLayoutModelParams = {
   onUpdateTypeSort?: NoteListProps['onUpdateTypeSort']
   onUpdateNoteProperty?: NoteListProps['onUpdateNoteProperty']
   onDeleteNoteProperty?: NoteListProps['onDeleteNoteProperty']
+  onCreateNoteWithProperties?: NoteListProps['onCreateNoteWithProperties']
   sidebarCollapsed?: boolean
   loading: boolean
   modifiedFilesError?: string | null
@@ -463,6 +469,7 @@ function noteListInteractionModel(params: NoteListLayoutModelParams) {
     onUpdateTypeSort: params.onUpdateTypeSort,
     onUpdateNoteProperty: params.onUpdateNoteProperty,
     onDeleteNoteProperty: params.onDeleteNoteProperty,
+    onCreateNoteWithProperties: params.onCreateNoteWithProperties,
     searched: params.content.searched,
     query: params.content.query,
     noteListFilter: params.noteListFilter,

@@ -4,6 +4,7 @@ import { KanbanLayout } from '../components/note-list/KanbanLayout'
 import type { AppLocale, TranslationKey } from '../lib/i18n'
 import type { VaultEntry, ViewFile } from '../types'
 import { COLLECTION_PRESENTATION_KANBAN, COLLECTION_PRESENTATION_LIST, type CollectionPresentationType, type KanbanColumnConfig } from './collectionTypes'
+import type { ViewColumnCreatePlan } from './kanbanViewColumnCreate'
 import type { ViewColumnMovePlan } from './kanbanViewColumnMove'
 
 export interface CollectionLayoutRendererProps {
@@ -23,6 +24,8 @@ export interface CollectionLayoutRendererProps {
   onColumnsChange?: (columns: KanbanColumnConfig[]) => void
   /** Applies the frontmatter edits that move a card into a View-driven column. */
   onApplyMove?: (entry: VaultEntry, plan: ViewColumnMovePlan) => Promise<void>
+  /** Creates a card in a View-driven column; absent means the board cannot create notes. */
+  onCreateCard?: (title: string, plan: ViewColumnCreatePlan) => void
   locale: AppLocale
   typeEntryMap: Record<string, VaultEntry>
   displayPropsOverride?: string[] | null
