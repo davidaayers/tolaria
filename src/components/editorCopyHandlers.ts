@@ -53,3 +53,17 @@ export function handleEditorCopy(
 ) {
   if (!handleCodeBlockCopy(event)) handleSelectedEditorCopy(event, editor)
 }
+
+// A prevented clipboard event never reaches ProseMirror, so BlockNote's own cut
+// handler (copy + delete) is skipped and the selection has to be removed here.
+// When the copy path declines the event, BlockNote's cut still runs as before.
+export function handleEditorCut(
+  event: ClipboardEvent<HTMLDivElement>,
+  editor: ReturnType<typeof useCreateBlockNote>,
+) {
+  handleEditorCopy(event, editor)
+  if (!event.defaultPrevented) return
+
+  const view = editor.prosemirrorView
+  if (view?.editable) view.dispatch(view.state.tr.deleteSelection())
+}

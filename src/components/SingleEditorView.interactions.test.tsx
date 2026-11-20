@@ -235,6 +235,36 @@ describe('SingleEditorView interactions', () => {
     expect(htmlCall?.[1]).toBe('<div style="color: rgb(0, 0, 0);"><strong>Bold copy</strong></div>')
   })
 
+  it('cuts selected rich text with the same readable HTML and removes the selection', async () => {
+    const deletedSelection = { type: 'delete-selection' }
+    const deleteSelection = vi.fn(() => deletedSelection)
+    const dispatch = vi.fn()
+    const editor = Object.assign(createEditor(), {
+      prosemirrorView: { editable: true, state: { tr: { deleteSelection } }, dispatch },
+    })
+    const { container } = renderEditorHarness(editor)
+    const paragraph = document.createElement('p')
+    const strong = document.createElement('strong')
+    strong.textContent = 'Bold cut'
+    paragraph.appendChild(strong)
+    await act(async () => {
+      container.appendChild(paragraph)
+      await Promise.resolve()
+    })
+    selectNodeContents(strong)
+
+    const clipboardData = { setData: vi.fn() }
+    const didBubble = fireEvent.cut(strong, { clipboardData })
+
+    expect(didBubble).toBe(false)
+    expect(clipboardData.setData).toHaveBeenCalledWith('text/plain', 'Bold cut')
+    expect(clipboardData.setData).toHaveBeenCalledWith(
+      'text/html',
+      '<div style="color: rgb(0, 0, 0);"><strong>Bold cut</strong></div>',
+    )
+    expect(dispatch).toHaveBeenCalledWith(deletedSelection)
+  })
+
   it('handles registered plain-text paste requests through BlockNote insertion', () => {
     const { container, editor } = renderEditorHarness()
 

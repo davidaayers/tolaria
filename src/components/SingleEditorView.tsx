@@ -51,7 +51,7 @@ import {
 import { useCompositionAwareEditorChange } from './useCompositionAwareEditorChange'
 import { useSeedBlockNoteTableBridge } from './useSeedBlockNoteTableBridge'
 import { EditorInteractionControllers } from './EditorInteractionControllers'
-import { handleEditorCopy } from './editorCopyHandlers'
+import { handleEditorCopy, handleEditorCut } from './editorCopyHandlers'
 import { CodeBlockCopyButton } from './codeBlockCopyControls'
 import { useCodeBlockCopyTarget } from './useCodeBlockCopyTarget'
 import { observeRichEditorAccessibility } from './richEditorAccessibility'
@@ -394,6 +394,12 @@ export function SingleEditorView(options: {
     },
     [editor],
   )
+  const handleCutCapture = useCallback(
+    (event: React.ClipboardEvent<HTMLDivElement>) => {
+    handleEditorCut(event, editor)
+    },
+    [editor],
+  )
 
   useEffect(() => {
     const container = containerRef.current
@@ -427,6 +433,7 @@ export function SingleEditorView(options: {
       className={`editor__blocknote-container${isDragOver ? ' editor__blocknote-container--drag-over' : ''}`}
       style={cssVars as React.CSSProperties}
       onCopyCapture={handleCopyCapture}
+      onCutCapture={handleCutCapture}
       onFocusCapture={handleFocusCapture}
       onMouseLeave={clearCopyTarget}
       onMouseDownCapture={handleMouseDownCapture}
