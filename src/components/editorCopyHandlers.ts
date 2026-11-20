@@ -1,6 +1,7 @@
 import type { ClipboardEvent } from 'react'
 import type { useCreateBlockNote } from '@blocknote/react'
 import {
+  neutralColorClipboardWriter,
   richEditorClipboardPayload,
   selectedCodeBlockText,
   selectedEditorDomHtml,
@@ -32,14 +33,15 @@ function handleSelectedEditorCopy(
   const plainText = selectedEditorPlainText(selection, range)
   if (plainText === null) return
 
-  event.clipboardData.setData('text/plain', plainText)
+  const clipboardData = neutralColorClipboardWriter(event.clipboardData)
+  clipboardData.setData('text/plain', plainText)
 
   const richPayload = richEditorClipboardPayload(editor)
   if (richPayload) {
-    writeRichEditorClipboardPayload(event.clipboardData, richPayload)
+    writeRichEditorClipboardPayload(clipboardData, richPayload)
   } else {
     const markup = selectedEditorDomHtml(range)
-    if (markup.length > 0) event.clipboardData.setData('text/html', markup)
+    if (markup.length > 0) clipboardData.setData('text/html', markup)
   }
 
   event.preventDefault()

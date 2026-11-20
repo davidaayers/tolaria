@@ -65,6 +65,29 @@ export function writeRichEditorClipboardPayload(
   clipboardData.setData('text/html', clipboardPayloadMarkup(payload, 'html'))
 }
 
+// WebKit re-serializes page-written text/html for the pasteboard and inlines the
+// computed text color, which resolves to white under Tolaria's dark color-scheme.
+// Mail clients such as Outlook then render that pasted text invisibly in dark
+// mode. An explicit black root color is what WebKit inlines instead, and it is
+// what dark-mode mail clients already adapt for readability.
+const NEUTRAL_CLIPBOARD_TEXT_COLOR = 'rgb(0, 0, 0)'
+
+export function withNeutralClipboardTextColor(markup: string): string {
+  const wrapper = document.createElement('div')
+  wrapper.style.color = NEUTRAL_CLIPBOARD_TEXT_COLOR
+  wrapper.innerHTML = markup
+  return wrapper.outerHTML
+}
+
+export function neutralColorClipboardWriter(clipboardData: ClipboardWriter): ClipboardWriter {
+  return {
+    setData: (format, data) => clipboardData.setData(
+      format,
+      format === 'text/html' ? withNeutralClipboardTextColor(data) : data,
+    ),
+  }
+}
+
 function clipboardPayloadMarkup(
   payload: RichEditorClipboardPayload,
   field: 'blocknoteHtml' | 'html',

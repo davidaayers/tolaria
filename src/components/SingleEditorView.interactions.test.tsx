@@ -216,6 +216,25 @@ describe('SingleEditorView interactions', () => {
     expect(clipboardData.setData).toHaveBeenCalledTimes(2)
   })
 
+  it('pins copied HTML to black text so WebKit cannot inline the dark theme color', async () => {
+    const { container } = renderEditorHarness()
+    const paragraph = document.createElement('p')
+    const strong = document.createElement('strong')
+    strong.textContent = 'Bold copy'
+    paragraph.appendChild(strong)
+    await act(async () => {
+      container.appendChild(paragraph)
+      await Promise.resolve()
+    })
+    selectNodeContents(strong)
+
+    const clipboardData = { setData: vi.fn() }
+    fireEvent.copy(strong, { clipboardData })
+
+    const htmlCall = clipboardData.setData.mock.calls.find(([format]) => format === 'text/html')
+    expect(htmlCall?.[1]).toBe('<div style="color: rgb(0, 0, 0);"><strong>Bold copy</strong></div>')
+  })
+
   it('handles registered plain-text paste requests through BlockNote insertion', () => {
     const { container, editor } = renderEditorHarness()
 
