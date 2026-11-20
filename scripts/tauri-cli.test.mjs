@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { accessSync, constants } from 'node:fs'
 import path from 'node:path'
 import test from 'node:test'
 
@@ -6,12 +7,15 @@ import {
   DEV_APP_CONFIG_NAMESPACE,
   DEV_TAURI_CONFIG_PATH,
   hasTauriConfigArgument,
+  MACOS_SHIM_DIR,
   isTauriDevCommand,
+  needsActoolStdinShim,
   shouldUseShell,
   tauriArgs,
   tauriBinary,
   tauriEnv,
   tauriSpawnOptions,
+  withShimDirOnPath,
 } from './tauri-cli.mjs'
 
 test('detects tauri dev commands', () => {
@@ -68,4 +72,23 @@ test('runs the Unix Tauri binary without a shell', () => {
     tauriSpawnOptions(['build'], { EXISTING: '1' }, 'darwin').shell,
     false,
   )
+})
+
+test('shims actool stdin only for macOS builds', () => {
+  assert.equal(needsActoolStdinShim(['build'], 'darwin'), true)
+  assert.equal(needsActoolStdinShim(['dev'], 'darwin'), false)
+  assert.equal(needsActoolStdinShim(['build'], 'linux'), false)
+  assert.equal(needsActoolStdinShim(['build'], 'win32'), false)
+})
+
+test('the actool shim is executable', () => {
+  accessSync(path.join(MACOS_SHIM_DIR, 'actool'), constants.X_OK)
+})
+
+test('puts the shim directory first on PATH', () => {
+  assert.equal(
+    withShimDirOnPath({ PATH: '/usr/bin', KEEP: '1' }, '/tmp/shim').PATH,
+    `/tmp/shim${path.delimiter}/usr/bin`,
+  )
+  assert.equal(withShimDirOnPath({}, '/tmp/shim').PATH, '/tmp/shim')
 })

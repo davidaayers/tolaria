@@ -1,0 +1,4 @@
+#!/bin/sh
+# Xcode 27 actool fails with "Bad file descriptor" when stdin is closed, which is
+# how Tauri spawns it for Tolaria.icon. Run the real tool with stdin on /dev/null.
+exec "$(/usr/bin/xcrun --find actool)" "$@" < /dev/null
