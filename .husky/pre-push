@@ -134,10 +134,17 @@ echo ""
 echo "🚀 Pre-push checks (replaces CI — do not skip)"
 echo "================================================"
 
-echo ""
-echo "🛡️  Codacy differential gate (no new findings at any severity)..."
-pnpm codacy:gate
-echo "  ✅ Codacy gate OK"
+# Fork override (CLAUDE.local.md): Codacy is skipped on this personal fork.
+# Set TOLARIA_CODACY_GATE=1 to run it.
+if [ "${TOLARIA_CODACY_GATE:-0}" = "1" ]; then
+  echo ""
+  echo "🛡️  Codacy differential gate (no new findings at any severity)..."
+  pnpm codacy:gate
+  echo "  ✅ Codacy gate OK"
+else
+  echo ""
+  echo "⏭️  Codacy differential gate skipped (fork override; TOLARIA_CODACY_GATE=1 to enable)"
+fi
 
 # ── Detect what changed ─────────────────────────────────────────────────
 PUSH_TARGET=$(git rev-parse @{push} 2>/dev/null || echo "")
